@@ -1,0 +1,3 @@
+[submodule "src/nbvplanner"]
+	path = src/nbvplanner
+	url = git@github.com:ethz-asl/nbvplanner.git

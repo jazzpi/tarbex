@@ -70,15 +70,16 @@ int main(int argc, char** argv) {
     ros::NodeHandle n;
 
     ros::NodeHandle params("~");
-    float x, y, z;
-    assert(params.getParam("bb1x", x));
-    assert(params.getParam("bb1y", y));
-    assert(params.getParam("bb1z", z));
-    pmin = {x, y, z};
-    assert(params.getParam("bb2x", x));
-    assert(params.getParam("bb2y", y));
-    assert(params.getParam("bb2z", z));
-    pmax = {x, y, z};
+    float min[3], max[3];
+    if (!(params.getParam("bb1x", min[0]) && params.getParam("bb1y", min[1]) &&
+          params.getParam("bb1z", min[2]) && params.getParam("bb2x", max[0]) &&
+          params.getParam("bb2y", max[1]) && params.getParam("bb2z", max[2]))) {
+        ROS_ERROR("The logger needs a bounding box to be passed in the"
+                  "parameters ~bb1x, ~bb1y, ~bb1z, ~bb2x, ~bb2y, ~bb2z");
+        return 2;
+    }
+    pmin = {min[0], min[1], min[2]};
+    pmax = {max[0], max[1], max[2]};
 
     ros::Subscriber sub = n.subscribe("octomap_full", 100, map_cb);
 

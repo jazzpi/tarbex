@@ -135,7 +135,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/tb_logger_node.cpp)
 
-add_executable(tb_logger src/logger.cpp)
+add_executable(tb_logger src/logger_node.cpp)
 target_link_libraries(tb_logger ${catkin_LIBRARIES})
 
 ## Rename C++ executable without prefix
