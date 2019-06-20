@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>tb_simulation</name>
+  <version>0.0.1</version>
+  <description>The simulation package for TARBEX</description>
+
+  <maintainer email="vonblanckenburg@tu-berlin.de">Jasper v. Blanckenburg</maintainer>
+
+  <license>TODO</license>
+
+  <author email="vonblanckenburg@tu-berlin.de">Jasper v. Blanckenburg</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <exec_depend>rospy</exec_depend>
+</package>
