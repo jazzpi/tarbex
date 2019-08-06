@@ -1,0 +1,16 @@
+<launch>
+  <group>
+    <remap from="/pose" to="/indoor/pose" />
+    <node pkg="tb_simulation" type="map_link_broadcaster" name="map_link_broadcaster" />
+  </group>
+  <group>
+    <remap from="/indoor/Kinect/rgb/image" to="/camera/rgb/image_raw" />
+    <remap from="/indoor/Kinect/depth/image" to="/camera/depth_registered/image_raw" />
+    <node pkg="tb_simulation" type="start_morse" name="morse"
+          args="run /home/jasper/tarbex/src/tb_simulation/src/default.py" />
+  </group>
+  <group>
+    <remap from="/cloud_in" to="/indoor/depth_cloud" />
+    <node pkg="octomap_server" type="octomap_server_node" name="octomap_server" />
+  </group>
+</launch>
