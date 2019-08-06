@@ -52,7 +52,7 @@ pose = builder.Pose()
 pose.add_stream('ros')
 copter.append(pose)
 
-copter.translate(x=14.0, y=7.5, z=2.075)
+copter.translate(x=14.0, y=7.5, z=1.3)
 copter.rotate(x=0.0, y=0.0, z=math.pi)
 
 env = builder.Environment(env_path, fastmode=False)
