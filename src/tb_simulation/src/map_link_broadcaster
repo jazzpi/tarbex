@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-import tf
+import tf2_ros
 from geometry_msgs.msg import TransformStamped, PoseStamped
 
 POSE_TOPIC="/pose"
@@ -9,48 +9,18 @@ BASE_LINK="base_link"
 MAP="/map"
 
 def pose_cb(data):
-    # rospy.loginfo("I got a pose: %s", repr(data))
     pose = data.pose
-    br = tf.TransformBroadcaster()
-    br.sendTransform((pose.position.x, pose.position.y, pose.position.z),
-                     (pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w),
-                     rospy.Time.now(),
-                     BASE_LINK,
-                     MAP)
+    br = tf2_ros.TransformBroadcaster()
+    trans = TransformStamped()
+    trans.child_frame_id = BASE_LINK
+    trans.header.stamp = data.header.stamp
+    trans.header.frame_id = MAP
+    trans.transform.translation = pose.position
+    trans.transform.rotation = pose.orientation
+    br.sendTransform(trans)
 
 if __name__ == "__main__":
     rospy.init_node("map_link_broadcaster")
-    from1 = rospy.get_param("~from1")
-    to1 = rospy.get_param("~to1")
-    from2 = rospy.get_param("~from2")
-    to2 = rospy.get_param("~to2")
 
     sub = rospy.Subscriber(POSE_TOPIC, PoseStamped, pose_cb)
-    rospy.spin()
-
-    rate = rospy.Rate(30.0)
-    did_send = False
-    while not rospy.is_shutdown():
-        rate.sleep()
-
-        try:
-            msg = TransformStamped()
-            trans, rot = listener.lookupTransform(from1, to1, rospy.Time())
-            msg.header.stamp = rospy.Time.now()
-            msg.header.frame_id = from2
-            msg.child_frame_id = to2
-
-            msg.transform.translation.x = trans[0]
-            msg.transform.translation.y = trans[1]
-            msg.transform.translation.z = trans[2]
-            msg.transform.rotation.x = rot[0]
-            msg.transform.rotation.y = rot[1]
-            msg.transform.rotation.z = rot[2]
-            msg.transform.rotation.w = rot[3]
-            br.sendTransform(msg)
-            break
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as ex:
-            rospy.logwarn(ex)
-            continue
-
     rospy.spin()
