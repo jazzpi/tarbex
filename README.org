@@ -1,0 +1,34 @@
+#+TITLE: Targeted Building Exploration Through Openings
+
+#+OPTIONS: toc:nil
+
+#+TOC: headlines 3
+
+* Architecture
+** tb_simulation
+This package contains the simulation environment. It contains some utility nodes
+as well as the =sim.launch= file.
+
+*** Nodes
+**** map_link_broadcaster
+This node broadcasts a transform from the =/map= to =base_link=, based off the
+Pose topic =/pose=
+**** start_morse
+Starts MORSE with an environment. No more, no less.
+** octomap_server
+See [[http://wiki.ros.org/octomap_server][the ROS Wiki]] for details. We only use the =octomap_server_node= node.
+* Simulation
+The simulation runs in MORSE. The UAV has four sensors:
+
+- Video camera (=/indoor/cam_video=)
+- Depth camera (=/indoor/cam_depth=)
+- Point cloud (=/indoor/point_cloud=)
+- Pose for ground truth (=/indoor/pose=)
+
+The point cloud is integrated into an OctoMap by [[octomap_server]]. It publishes
+the resulting OctoMap to =/octomap_binary= and =/octomap_full=.
+
+It also publishes a 2D projected map to =/projected_map=, which ignores all
+voxels with y values outside of [0.8, 1.7]. These values where chosen so that 2D
+algorithms can be used for navigation at y = 1.3, where all the openings are
+located.
