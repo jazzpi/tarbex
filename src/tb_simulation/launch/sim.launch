@@ -10,9 +10,13 @@
   <group>
     <remap from="/cloud_in" to="/indoor/depth_cloud" />
     <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
-      <!-- Ignore ceiling and floor for the proejcted map -->
-      <param name="occupancy_min_z" type="double" value="0.8" />
-      <param name="occupancy_max_z" type="double" value="1.7" />
+      <!-- Make sure the projected map is actually at the height we want it to be at -->
+      <!-- TODO: This creates a pretty terrible map with lots of faux unexplored space.
+                 Maybe project the map ourselves with different z thresholds for
+                 exploration and obstacles? -->
+      <param name="occupancy_min_z" type="double" value="0.9" />
+      <param name="occupancy_max_z" type="double" value="1.1" />
+      <param name="resolution" type="double" value="0.4" />
     </node>
   </group>
 </launch>
