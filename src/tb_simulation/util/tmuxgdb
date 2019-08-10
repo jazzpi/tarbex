@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if tmux has-session -t=simgdb 2>/dev/null; then
+    tmux new-window -d -t simgdb: "gdb --args $*"
+else
+    tmux new-session -d -s simgdb "gdb --args $*"
+fi
