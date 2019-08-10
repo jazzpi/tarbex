@@ -1,15 +1,15 @@
 system/v_max: 0.2
 system/dyaw_max: 0.75
-system/camera/pitch: [15.0]
-system/camera/horizontal: [90.0]
-system/camera/vertical: [60.0]
+system/camera/pitch: [45.0]
+system/camera/horizontal: [115.99]
+system/camera/vertical: [115.99]
 system/bbx/x: 0.75
 system/bbx/y: 0.75
 system/bbx/z: 0.5
 system/bbx/overshoot: 0.5
 
-nbvp/gain/free: 0.05
-nbvp/gain/occupied: 0.1
+nbvp/gain/free: 0.0
+nbvp/gain/occupied: 0.0
 nbvp/gain/unmapped: 1.0
 nbvp/gain/area: 0.0
 nbvp/gain/probabilistic: 0.0

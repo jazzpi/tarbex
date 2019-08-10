@@ -9,7 +9,7 @@
       <param name="tf_frame" type="string" value="/map" />
       <param name="robot_frame" type="string" value="base_link" />
       <param name="bbx/minX" type="double" value="-14" />
-      <param name="bbx/minY" type="double" value="-4" />
+      <param name="bbx/minY" type="double" value="-10" />
       <param name="bbx/minZ" type="double" value="0" />
       <param name="bbx/maxX" type="double" value="14" />
       <param name="bbx/maxY" type="double" value="18" />
