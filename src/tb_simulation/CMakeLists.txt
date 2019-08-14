@@ -12,8 +12,11 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   roscpp
   geometry_msgs
+  tf
+  pcl_ros
 )
 find_package(Eigen3 REQUIRED)
+find_package(PCL REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -122,12 +125,18 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
 
 add_executable(path_follower src/path_follower.cpp)
+add_executable(pcl_transformer src/pcl_transformer.cpp)
 
 target_link_libraries(path_follower
   ${catkin_LIBRARIES}
+)
+target_link_libraries(pcl_transformer
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
 )
 
 ## Declare a C++ library

@@ -16,6 +16,11 @@
   </group>
   <group>
     <remap from="/cloud_in" to="/indoor/depth_cloud" />
+    <remap from="/cloud_out" to="/depth_cloud_tf" />
+    <node pkg="tb_simulation" type="pcl_transformer" name="pcl_transformer" output="screen" />
+  </group>
+  <group>
+    <remap from="/cloud_in" to="/depth_cloud_tf" />
     <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
       <!-- Make sure the projected map is actually at the height we want it to be at -->
       <!-- TODO: This creates a pretty terrible map with lots of faux unexplored space.
