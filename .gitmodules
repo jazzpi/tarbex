@@ -1,3 +1,6 @@
 [submodule "src/nbvplanner"]
 	path = src/nbvplanner
 	url = git@github.com:jazzpi/nbvplanner.git
+[submodule "src/octomap_mapping"]
+	path = src/octomap_mapping
+	url = git@github.com:jazzpi/octomap_mapping.git
