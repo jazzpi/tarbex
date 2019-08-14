@@ -27,7 +27,7 @@ cam_depth.rotate(x=0.0, y=-math.pi/4, z=0.0)
 # cam_depth.rotate(x=0.0, y=0.0, z=0.0)
 #wideangle
 cam_depth.properties(cam_width=640, cam_height=480, cam_focal=10, Vertical_Flip=True, cam_near=0.01)
-cam_depth.frequency(30)
+cam_depth.frequency(15)
 cam_depth.add_stream('ros')
 copter.append(cam_depth)
 
@@ -37,7 +37,7 @@ depth_cloud.rotate(x=0.0, y=-math.pi/4, z=0.0)
 # depth_cloud.rotate(x=0.0, y=0.0, z=0.0)
 #wideangle
 depth_cloud.properties(cam_width=640, cam_height=480, cam_focal=10, cam_near=0.01)
-depth_cloud.frequency(30)
+depth_cloud.frequency(15)
 depth_cloud.add_stream('ros')
 copter.append(depth_cloud)
 
@@ -47,7 +47,7 @@ cam_video.rotate(x=0.0, y=-math.pi/4, z=0.0)
 # cam_video.rotate(x=0.0, y=0.0, z=0.0)
 #wideangle
 cam_video.properties(cam_width=640, cam_height=480, cam_focal=10, cam_near=0.01)
-cam_video.frequency(30)
+cam_video.frequency(15)
 cam_video.add_stream('ros')
 copter.append(cam_video)
 
