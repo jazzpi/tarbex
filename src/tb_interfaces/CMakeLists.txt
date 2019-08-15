@@ -108,7 +108,7 @@ find_package(sbpl REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES tb_interfaces
-  CATKIN_DEPENDS message_runtime roscpp
+  CATKIN_DEPENDS message_runtime roscpp tb_simulation
 #  DEPENDS system_lib
 )
 
