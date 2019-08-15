@@ -31,6 +31,7 @@ protected:
     std::vector<sbpl_2Dpt_t> robot_perimeters;
     EnvironmentNAVXYTHETALAT env;
     MDPConfig mdp_cfg;
+    std::unique_ptr<ADPlanner> planner;
     bool ready;
     geometry_msgs::Pose target;
 

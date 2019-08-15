@@ -46,21 +46,9 @@ bool ADStarInterface::plan_cb(tb_simulation::PlanPath::Request& req,
 
     ready = true;
 
-    ADPlanner planner(&env, 0);
     std::vector<int> solution_states;
-    if (planner.set_start(mdp_cfg.startstateid) == 0) {
-        printf("ERROR: failed to set start state\n");
-        throw SBPL_Exception("ERROR: failed to set start state");
-    }
-    if (planner.set_goal(mdp_cfg.goalstateid) == 0) {
-        printf("ERROR: failed to set goal state\n");
-        throw SBPL_Exception("ERROR: failed to set goal state");
-    }
-    planner.set_initialsolution_eps(3.0);
-    planner.set_search_mode(false);
-
     ROS_INFO("Start planning...");
-    int ret = planner.replan(3.0, &solution_states);
+    int ret = planner->replan(3.0, &solution_states);
     if (ret) {
         ROS_INFO("Done! Size of solution = %zu", solution_states.size());
     } else {
@@ -140,6 +128,18 @@ bool ADStarInterface::reinit_env() {
       ROS_ERROR("Couldn't initialize MDPCfg!");
       return false;
     }
+
+    planner = std::make_unique<ADPlanner>(&env, 0);
+    if (planner->set_start(mdp_cfg.startstateid) == 0) {
+        printf("ERROR: failed to set start state\n");
+        return false;
+    }
+    if (planner->set_goal(mdp_cfg.goalstateid) == 0) {
+        printf("ERROR: failed to set goal state\n");
+        return false;
+    }
+    planner->set_initialsolution_eps(3.0);
+    planner->set_search_mode(false);
 
     return true;
 }
