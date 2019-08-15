@@ -1,12 +1,21 @@
 #include "tb_adstar_interface.hpp"
 
+namespace geometry_msgs {
+
+bool operator==(const Point& a, const Point& b) {
+    return (a.x == b.x && a.y == b.y && a.z == b.z);
+}
+
+}
+
 namespace tb_interfaces {
 
 ADStarInterface::ADStarInterface(ros::NodeHandle nh, ros::NodeHandle nh_private)
     : Interface2D(nh, nh_private)
 {
-    double w_half = 0.25;
-    double l_half = 0.25;
+    // TODO: Figure this out
+    double w_half = 0.0;
+    double l_half = 0.0;
 
     sbpl_2Dpt_t pt;
     pt.x = -l_half;
@@ -37,7 +46,7 @@ bool ADStarInterface::plan_cb(tb_simulation::PlanPath::Request& req,
             map.info.width, map.info.height, &mapdata[0], std::get<0>(start),
             std::get<1>(start), std::get<2>(start), std::get<0>(goal),
             std::get<1>(goal), std::get<2>(goal), 0.2, 0.2, 0.05,
-            robot_perimeters, 0.4, 0.4, 1.0, 255,
+            robot_perimeters, 0.4, 0.4, 1.0, 100,
             "/home/jasper/tarbex/src/tb_simulation/data/prim040.mprim"
         )) {
       ROS_ERROR("Couldn't initialize environment!");
@@ -64,7 +73,31 @@ bool ADStarInterface::plan_cb(tb_simulation::PlanPath::Request& req,
 
     ROS_INFO("Start planning...");
     int ret = planner.replan(3.0, &solution_states);
-    ROS_INFO("Done: %d! Size of solution = %zu", ret, solution_states.size());
+    if (ret) {
+        ROS_INFO("Done! Size of solution = %zu", solution_states.size());
+    } else {
+        ROS_WARN("Couldn't find a solution!");
+        return true;
+    }
+
+    std::vector<sbpl_xy_theta_pt_t> xytheta;
+    env.ConvertStateIDPathintoXYThetaPath(&solution_states, &xytheta);
+
+    double last_x = NAN;
+    double last_y = NAN;
+    for (const auto& p : xytheta) {
+        geometry_msgs::Pose po = calc_pose(std::make_tuple(p.x, p.y, p.theta));
+        if (p.x == last_x && p.y == last_y) {
+            // Compress multiple waypoints at the same point into one
+            *res.path.rbegin() = po;
+            continue;
+        }
+        res.path.push_back(po);
+        last_x = p.x;
+        last_y = p.y;
+    }
+
+    publish_path(res.path);
     return true;
 }
 

@@ -73,4 +73,14 @@ std::tuple<double, double, double> Interface2D::calc_2d_coords(const geometry_ms
     return std::make_tuple(x, y, theta);
 }
 
+geometry_msgs::Pose Interface2D::calc_pose(const std::tuple<double, double, double>& coords_2d) {
+    const auto& mp = map.info.origin.position;
+    tf::Pose tpose = tf::Pose(tf::createQuaternionFromYaw(std::get<2>(coords_2d)),
+                              tf::Vector3(std::get<0>(coords_2d) + mp.x,
+                                          std::get<1>(coords_2d) + mp.y, 1.3));
+    geometry_msgs::Pose gpose;
+    tf::poseTFToMsg(tpose, gpose);
+    return gpose;
+}
+
 } // namespace tb_interfaces
