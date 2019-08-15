@@ -46,34 +46,7 @@ bool ADStarInterface::plan_cb(tb_simulation::PlanPath::Request& req,
 
     ready = true;
 
-    std::vector<int> solution_states;
-    ROS_INFO("Start planning...");
-    int ret = planner->replan(3.0, &solution_states);
-    if (ret) {
-        ROS_INFO("Done! Size of solution = %zu", solution_states.size());
-    } else {
-        ROS_WARN("Couldn't find a solution!");
-        return true;
-    }
-
-    std::vector<sbpl_xy_theta_pt_t> xytheta;
-    env.ConvertStateIDPathintoXYThetaPath(&solution_states, &xytheta);
-
-    double last_x = NAN;
-    double last_y = NAN;
-    for (const auto& p : xytheta) {
-        geometry_msgs::Pose po = calc_pose(std::make_tuple(p.x, p.y, p.theta));
-        if (p.x == last_x && p.y == last_y) {
-            // Compress multiple waypoints at the same point into one
-            *res.path.rbegin() = po;
-            continue;
-        }
-        res.path.push_back(po);
-        last_x = p.x;
-        last_y = p.y;
-    }
-
-    publish_path(res.path);
+    replan(res.path);
     return true;
 }
 
@@ -105,6 +78,39 @@ void ADStarInterface::process_map_updates(
 
 void ADStarInterface::process_map_replaced() {
     reinit_env();
+}
+
+bool ADStarInterface::replan(std::vector<geometry_msgs::Pose>& path) {
+    std::vector<int> solution_states;
+    ROS_INFO("Start planning...");
+    int ret = planner->replan(3.0, &solution_states);
+    if (ret) {
+        ROS_INFO("Done! Size of solution = %zu", solution_states.size());
+    } else {
+        ROS_WARN("Couldn't find a solution!");
+        return false;
+    }
+
+    std::vector<sbpl_xy_theta_pt_t> xytheta;
+    env.ConvertStateIDPathintoXYThetaPath(&solution_states, &xytheta);
+
+    double last_x = NAN;
+    double last_y = NAN;
+    for (const auto& p : xytheta) {
+        geometry_msgs::Pose po = calc_pose(std::make_tuple(p.x, p.y, p.theta));
+        if (p.x == last_x && p.y == last_y) {
+            // Compress multiple waypoints at the same point into one
+            *path.rbegin() = po;
+            continue;
+        }
+        path.push_back(po);
+        last_x = p.x;
+        last_y = p.y;
+    }
+
+    publish_path(path);
+
+    return true;
 }
 
 bool ADStarInterface::reinit_env() {

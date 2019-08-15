@@ -27,6 +27,7 @@ protected:
                  tb_simulation::PlanPath::Response& res) override;
     void process_map_updates(const std::vector<std::tuple<int, int, int8_t>>& updated_cells) override;
     void process_map_replaced() override;
+    bool replan(std::vector<geometry_msgs::Pose>& path);
 
     std::vector<sbpl_2Dpt_t> robot_perimeters;
     EnvironmentNAVXYTHETALAT env;
