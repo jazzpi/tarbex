@@ -93,7 +93,13 @@ void ADStarInterface::process_map_replaced() {
 bool ADStarInterface::replan(std::vector<geometry_msgs::Pose>& path) {
     std::vector<int> solution_states;
     ROS_INFO("Start planning...");
-    int ret = planner->replan(3.0, &solution_states);
+    int ret;
+    try {
+        ret = planner->replan(3.0, &solution_states);
+    } catch (SBPL_Exception e) {
+        ROS_ERROR("Planner threw an exception: %s", e.what());
+        return false;
+    }
     if (ret) {
         ROS_INFO("Done! Size of solution = %zu", solution_states.size());
     } else {
