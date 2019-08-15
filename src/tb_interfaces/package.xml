@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>tb_interfaces</name>
+  <version>0.0.1</version>
+  <description>The tb_interfaces package</description>
+
+  <maintainer email="vonblanckenburg@tu-berlin.de">Jasper v. Blanckenburg</maintainer>
+
+  <license>TODO</license>
+
+  <author email="vonblanckenburg@tu-berlin.de">Jasper v. Blanckenburg</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>sbpl</build_depend>
+
+  <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>sbpl</build_export_depend>
+
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>sbpl</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
+  <exec_depend>sbpl</exec_depend>
+</package>
