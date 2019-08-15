@@ -65,15 +65,12 @@ void ADStarInterface::pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg) {
         return;
     }
 
-    if (!env.SetStart(x, y, t)) {
+    int start_id = env.SetStart(x, y, t);
+    if (start_id == -1) {
         ROS_ERROR("Couldn't update environment start");
         return;
     }
-    if (!env.InitializeMDPCfg(&mdp_cfg)) {
-        ROS_ERROR("Couldn't reinitialize MDP config");
-        return;
-    }
-    if (!planner->set_start(mdp_cfg.startstateid)) {
+    if (!planner->set_start(start_id)) {
         ROS_ERROR("Couldn't update planner start");
         return;
     }
