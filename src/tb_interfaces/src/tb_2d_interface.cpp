@@ -13,7 +13,7 @@ void Interface2D::map_cb(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
     if (header_changed(msg)) {
         map = *msg;
         ROS_INFO_THROTTLE(1, "Map header changed!");
-        // TODO: Callback?
+        process_map_replaced();
         return;
     }
 
@@ -31,6 +31,7 @@ void Interface2D::map_cb(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
             }
         }
     }
+    process_map_updates(updated_cells);
 
     ROS_INFO_THROTTLE(1, "%zu cells changed", updated_cells.size());
 }

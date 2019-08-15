@@ -24,12 +24,20 @@ public:
 
 protected:
     bool plan_cb(tb_simulation::PlanPath::Request& req,
-                 tb_simulation::PlanPath::Response& res);
+                 tb_simulation::PlanPath::Response& res) override;
+    void process_map_updates(const std::vector<std::tuple<int, int, int8_t>>& updated_cells) override;
+    void process_map_replaced() override;
 
     std::vector<sbpl_2Dpt_t> robot_perimeters;
     EnvironmentNAVXYTHETALAT env;
+    MDPConfig mdp_cfg;
+    bool ready;
+    geometry_msgs::Pose target;
 
     std::vector<unsigned char> get_mapdata();
+
+private:
+    bool reinit_env();
 };
 
 }
