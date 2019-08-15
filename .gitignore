@@ -56,5 +56,8 @@ qtcreator-*
 .ccls-cache/
 compile_commands.json
 
+# Blender
+*.blend1
+
 # Catkin custom files
 CATKIN_IGNORE
