@@ -32,7 +32,9 @@ void Interface2D::map_cb(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
             }
         }
     }
-    process_map_updates(updated_cells);
+    if (updated_cells.size() > 0) {
+        process_map_updates(updated_cells);
+    }
 
     ROS_INFO_THROTTLE(1, "%zu cells changed", updated_cells.size());
 }
