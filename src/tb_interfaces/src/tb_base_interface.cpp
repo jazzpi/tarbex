@@ -1,16 +1,19 @@
 #include "tb_base_interface.hpp"
 
 #include <visualization_msgs/MarkerArray.h>
+#include <geometry_msgs/PoseArray.h>
 
 namespace tb_interfaces {
 
 BaseInterface::BaseInterface(ros::NodeHandle nh, ros::NodeHandle nh_private)
     : nh{nh},
       nh_private{nh_private},
-      vis_id{0}
+      vis_id{0},
+      path_id{0}
 {
     planner = nh.advertiseService(PLANNER_SRV, &BaseInterface::plan_cb, this);
     pose_sub = nh.subscribe(POSE_TOPIC, 10, &BaseInterface::pose_cb, this);
+    path_pub = nh_private.advertise<geometry_msgs::PoseArray>(PATH_TOPIC, 10);
     vis_pub = nh_private.advertise<visualization_msgs::Marker>(VIS_TOPIC, 10);
     vis_arr_pub = nh_private.advertise<visualization_msgs::MarkerArray>(VIS_TOPIC + std::string("_array"), 10);
 }
@@ -27,17 +30,15 @@ void BaseInterface::publish_pose(const geometry_msgs::Pose &pose, ros::Time stam
   vis_pub.publish(pose_marker(pose, stamp));
 }
 
-void BaseInterface::publish_path(const std::vector<geometry_msgs::Pose> &path, bool delete_previous) {
-    if (delete_previous) {
-        delete_poses();
-    }
-    visualization_msgs::MarkerArray array;
+void BaseInterface::publish_path(const std::vector<geometry_msgs::Pose> &path) {
     ros::Time stamp = ros::Time::now();
-    for (const auto& p : path) {
-        array.markers.push_back(pose_marker(p, stamp));
-    }
 
-    vis_arr_pub.publish(array);
+    geometry_msgs::PoseArray path_msg;
+    path_msg.header.frame_id = "/map";
+    path_msg.header.stamp = stamp;
+    path_msg.header.seq = path_id++;
+    path_msg.poses = path;
+    path_pub.publish(path_msg);
 }
 
 void BaseInterface::delete_poses() {
