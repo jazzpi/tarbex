@@ -14,9 +14,8 @@ ADStarInterface::ADStarInterface(ros::NodeHandle nh, ros::NodeHandle nh_private)
     : Interface2D(nh, nh_private),
       ready{false}
 {
-    // TODO: Figure this out
-    double w_half = 0.0;
-    double l_half = 0.0;
+    double w_half = 0.35;
+    double l_half = 0.35;
 
     sbpl_2Dpt_t pt;
     pt.x = -l_half;
