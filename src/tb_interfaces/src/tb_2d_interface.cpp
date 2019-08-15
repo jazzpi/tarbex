@@ -34,9 +34,8 @@ void Interface2D::map_cb(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
     }
     if (updated_cells.size() > 0) {
         process_map_updates(updated_cells);
+        ROS_INFO_THROTTLE(1, "%zu cells changed", updated_cells.size());
     }
-
-    ROS_INFO_THROTTLE(1, "%zu cells changed", updated_cells.size());
 }
 
 bool Interface2D::header_changed(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
@@ -71,10 +70,6 @@ std::tuple<double, double, double> Interface2D::calc_2d_coords(const geometry_ms
     if (std::isnan(theta)) {
         theta = 0;
     }
-
-    ROS_INFO_THROTTLE(1, "Pose: %f %f %f,\t2D Coords: %f %f %f",
-                      pose.getOrigin().getX(), pose.getOrigin().getY(), theta,
-                      x, y, theta);
 
     return std::make_tuple(x, y, theta);
 }
