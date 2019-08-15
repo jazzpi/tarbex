@@ -6,4 +6,4 @@
 	url = git@github.com:jazzpi/octomap_mapping.git
 [submodule "src/sbpl"]
 	path = src/sbpl
-	url = https://github.com/sbpl/sbpl.git
+	url = git@github.com:jazzpi/sbpl.git
