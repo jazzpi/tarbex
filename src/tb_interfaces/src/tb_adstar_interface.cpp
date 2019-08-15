@@ -70,10 +70,20 @@ void ADStarInterface::process_map_updates(
         return;
     }
 
+    std::vector<nav2dcell_t> changed_cells;
     for (const auto& p : updated_cells) {
-        env.UpdateCost(std::get<0>(p), std::get<1>(p),
-                       occ_grid_to_sbpl(std::get<2>(p)));
+        int x = std::get<0>(p);
+        int y = std::get<1>(p);
+        env.UpdateCost(x, y, occ_grid_to_sbpl(std::get<2>(p)));
+        changed_cells.push_back({x, y});
     }
+
+    std::vector<int> preds;
+    env.GetPredsofChangedEdges(&changed_cells, &preds);
+    planner->update_preds_of_changededges(&preds);
+
+    std::vector<geometry_msgs::Pose> path;
+    replan(path);
 }
 
 void ADStarInterface::process_map_replaced() {
