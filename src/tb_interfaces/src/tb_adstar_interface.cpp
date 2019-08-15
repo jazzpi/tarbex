@@ -49,6 +49,39 @@ bool ADStarInterface::plan_cb(tb_simulation::PlanPath::Request& req,
     return true;
 }
 
+void ADStarInterface::pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg) {
+    geometry_msgs::Pose old_pose = pose;
+    BaseInterface::pose_cb(msg);
+
+    if (!ready) return;
+
+    auto old_xyt = calc_2d_coords(old_pose);
+    auto xyt = calc_2d_coords(msg->pose);
+    double x = std::get<0>(xyt);
+    double y = std::get<1>(xyt);
+    double t = std::get<2>(xyt);
+    if (x == std::get<0>(old_xyt) && y == std::get<1>(old_xyt) &&
+        t == std::get<2>(old_xyt)) {
+        return;
+    }
+
+    if (!env.SetStart(x, y, t)) {
+        ROS_ERROR("Couldn't update environment start");
+        return;
+    }
+    if (!env.InitializeMDPCfg(&mdp_cfg)) {
+        ROS_ERROR("Couldn't reinitialize MDP config");
+        return;
+    }
+    if (!planner->set_start(mdp_cfg.startstateid)) {
+        ROS_ERROR("Couldn't update planner start");
+        return;
+    }
+
+    std::vector<geometry_msgs::Pose> path;
+    replan(path);
+}
+
 std::vector<unsigned char> ADStarInterface::get_mapdata() {
     int width = map.info.width;
     int height = map.info.height;

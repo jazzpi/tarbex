@@ -25,6 +25,7 @@ public:
 protected:
     bool plan_cb(tb_simulation::PlanPath::Request& req,
                  tb_simulation::PlanPath::Response& res) override;
+    void pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg) override;
     void process_map_updates(const std::vector<std::tuple<int, int, int8_t>>& updated_cells) override;
     void process_map_replaced() override;
     bool replan(std::vector<geometry_msgs::Pose>& path);
