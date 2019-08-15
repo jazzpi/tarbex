@@ -1,5 +1,6 @@
 #include "tb_2d_interface.hpp"
 
+#include <algorithm>
 #include <tf/transform_datatypes.h>
 
 namespace tb_interfaces {
@@ -60,8 +61,10 @@ std::tuple<double, double, double> Interface2D::calc_2d_coords(const geometry_ms
     tf::Pose pose;
     tf::poseMsgToTF(g_pose, pose);
 
-    double x = std::round((pose.getOrigin().getX() - map.info.origin.position.x) * 100) * 0.01;
-    double y = std::round((pose.getOrigin().getY() - map.info.origin.position.y) * 100) * 0.01;
+    double x = pose.getOrigin().getX() - map.info.origin.position.x;
+    x = std::min(map.info.origin.position.x + map.info.width, std::max(0.0, x));
+    double y = pose.getOrigin().getY() - map.info.origin.position.y;
+    y = std::min(map.info.origin.position.y + map.info.height, std::max(0.0, y));
     double theta = tf::getYaw(pose.getRotation());
     if (std::isnan(theta)) {
         theta = 0;
