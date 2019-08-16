@@ -10,7 +10,7 @@
 namespace tb_interfaces {
 
 constexpr const char* PLANNER_SRV = "/plan_path";
-constexpr const char* POSE_TOPIC = "/pose";
+constexpr const char* POSE_TOPIC = "pose";
 constexpr const char* PATH_TOPIC = "path";
 constexpr const char* VIS_TOPIC = "vis";
 

@@ -1,7 +1,8 @@
 <launch>
   <include file="$(find tb_simulation)/launch/sim.launch" />
   <group>
-    <remap from="/pose" to="/indoor/pose" />
+    <remap from="/adstarPlanner/pose" to="/indoor/pose" />
+    <remap from="/adstarPlanner/path" to="/path" />
     <node pkg="tb_interfaces" type="tb_adstar_interface" name="adstarPlanner"
           launch-prefix="$(find tb_simulation)/util/tmuxgdb">
       <param name="resolution" type="double" value="0.4" />
