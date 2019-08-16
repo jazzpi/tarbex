@@ -9,8 +9,8 @@
   </group>
   <group>
     <remap from="/waypoint" to="/indoor/waypoint_controller" />
-    <remap from="/pose" to="/indoor/pose" />
-    <remap from="/plan_path" to="/nbvplanner" />
+    <remap from="/path_follower/pose" to="/indoor/pose" />
+    <remap from="/path_follower/path" to="/path" />
     <node pkg="tb_simulation" type="path_follower" name="path_follower" output="screen"
           launch-prefix="$(find tb_simulation)/util/tmuxgdb" />
   </group>

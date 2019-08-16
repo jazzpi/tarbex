@@ -2,19 +2,19 @@
 #define __PATH_FOLLOWER_H_
 
 #include <ros/ros.h>
-#include <std_srvs/Trigger.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseArray.h>
 #include <tf/transform_datatypes.h>
 
 namespace tb_simulation {
 
-constexpr const char* START_SRV = "/start_planner";
-constexpr const char* PLANNER_SRV = "/plan_path";
-constexpr const char* WAYPOINT_TOPIC = "/waypoint";
-constexpr const char* POSE_TOPIC = "/pose";
+constexpr const char* WAYPOINT_TOPIC = "waypoint";
+constexpr const char* POSE_TOPIC = "pose";
+constexpr const char* PATH_TOPIC = "path";
 constexpr const char* FRAME_ID = "map";
-constexpr const double PATH_ORIG_EPSILON = 0.1;
+constexpr const double PATH_ORIG_EPSILON = 0.2;
 constexpr const double PATH_YAW_EPSILON = 0.05;
+constexpr const double WP_THROTTLE = 1.0;
 
 class PathFollower {
 public:
@@ -23,24 +23,21 @@ protected:
     ros::NodeHandle nh;
     ros::NodeHandle nh_private;
 
-    ros::ServiceServer start;
-    ros::ServiceClient planner;
     ros::Publisher wp_pub;
     ros::Subscriber pose_sub;
+    ros::Subscriber path_sub;
 
     std::vector<tf::Pose> path;
     std::vector<tf::Pose>::const_iterator current_target;
 
     bool ready;
-    uint32_t plan_seq;
+    ros::Time last_wp_pub;
 
-    bool start_callback(std_srvs::Trigger::Request& req,
-                        std_srvs::Trigger::Response& res);
     void pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+    void path_callback(const geometry_msgs::PoseArray::ConstPtr& msg);
 
-    void plan();
-    void advance_target();
-    void publish_pose(const tf::Pose& tp);
+    void advance_target(bool do_publish = true);
+    void publish_pose(const tf::Pose& tp, bool do_throttle = false);
 };
 
 } // namespace tb_simulation

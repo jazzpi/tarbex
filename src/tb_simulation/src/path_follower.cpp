@@ -15,30 +15,13 @@ PathFollower::PathFollower(ros::NodeHandle nh, ros::NodeHandle nh_private)
     : nh{nh},
       nh_private{nh_private},
       ready{false},
-      plan_seq{0}
+      last_wp_pub{ros::Time(0)}
 {
     current_target = path.end();
 
-    start = nh.advertiseService(START_SRV, &PathFollower::start_callback, this);
-    planner = nh.serviceClient<PlanPath>(PLANNER_SRV);
-    planner.waitForExistence();
-
     wp_pub = nh.advertise<geometry_msgs::Pose>(WAYPOINT_TOPIC, 1);
-    pose_sub = nh.subscribe(POSE_TOPIC, 10, &PathFollower::pose_callback, this);
-}
-
-bool PathFollower::start_callback(std_srvs::Trigger::Request&,
-                                  std_srvs::Trigger::Response& res) {
-    if (ready) {
-        res.success = false;
-        res.message = "Already started";
-    } else {
-        ready = true;
-        res.success = true;
-        res.message = "Started";
-    }
-
-    return true;
+    pose_sub = nh_private.subscribe(POSE_TOPIC, 10, &PathFollower::pose_callback, this);
+    path_sub = nh_private.subscribe(PATH_TOPIC, 10, &PathFollower::path_callback, this);
 }
 
 void PathFollower::pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
@@ -47,57 +30,67 @@ void PathFollower::pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg
     }
 
     if (current_target == path.end()) {
-        ROS_INFO("No target... Planning.");
-        plan();
+        ROS_WARN_DELAYED_THROTTLE(5, "No target!");
+        return;
     }
 
     tf::Pose pose;
     tf::poseMsgToTF(msg->pose, pose);
     tf::Pose diff = current_target->inverseTimes(pose);
 
-    if (diff.getOrigin().length() < PATH_ORIG_EPSILON &&
-        tf::getYaw(diff.getRotation()) < PATH_YAW_EPSILON) {
-        ROS_INFO_THROTTLE(1, "Reached target!");
-        ROS_INFO_POSE_THROTTLE(1, "target", (*current_target));
-        ROS_INFO_POSE_THROTTLE(1, "pose", pose);
-        advance_target();
+    while (current_target != path.end() &&
+           diff.getOrigin().length() < PATH_ORIG_EPSILON &&
+           tf::getYaw(diff.getRotation()) < PATH_YAW_EPSILON) {
+        ROS_INFO("Reached target!");
+        advance_target(false);
+        diff = current_target->inverseTimes(pose);
     }
-    ROS_INFO_POSE_THROTTLE(1, "diff", diff);
+    if (current_target != path.end()) {
+        publish_pose(*current_target, true);
+    }
 }
 
-void PathFollower::plan() {
-    tb_simulation::PlanPath srv;
-    srv.request.header.seq = plan_seq++;
-    srv.request.header.stamp = ros::Time::now();
-    srv.request.header.frame_id = FRAME_ID;
+void PathFollower::path_callback(const geometry_msgs::PoseArray::ConstPtr& msg) {
+    tf::Transform old_tgt;
+    bool old_tgt_exists = false;
+    if (path.size() > 0) {
+        old_tgt = *current_target;
+        old_tgt_exists = true;
+    }
 
-    if (planner.call(srv)) {
-        path.clear();
-        for (const auto& pose : srv.response.path) {
-            tf::Pose tp;
-            tf::poseMsgToTF(pose, tp);
-            path.push_back(tp);
+    path.clear();
+    for (const auto &pose : msg->poses) {
+      tf::Pose tp;
+      tf::poseMsgToTF(pose, tp);
+      path.push_back(tp);
+    }
+    if (path.size() > 0) {
+        if (!old_tgt_exists || !(old_tgt == path[0])) {
+            publish_pose(path[0]);
         }
-        current_target = path.begin();
-        publish_pose(*current_target);
     } else {
-        ROS_WARN_THROTTLE(1, "Couldn't reach the planner service at %s", PLANNER_SRV);
+        // TODO: Check if we reached the target
+        ROS_WARN_THROTTLE(1, "Path is empty!");
     }
+    current_target = path.begin();
+    ready = true;
 }
 
-void PathFollower::advance_target() {
+void PathFollower::advance_target(bool do_publish) {
     current_target++;
-    if (current_target == path.end()) {
-        plan();
-    } else {
+    if (current_target != path.end() && do_publish) {
         publish_pose(*current_target);
     }
 }
 
-void PathFollower::publish_pose(const tf::Pose& tp) {
-    geometry_msgs::Pose pose;
-    tf::poseTFToMsg(tp, pose);
-    wp_pub.publish(pose);
+void PathFollower::publish_pose(const tf::Pose& tp, bool do_throttle) {
+    ros::Time now = ros::Time::now();
+    if (!do_throttle || now - last_wp_pub >= ros::Duration(WP_THROTTLE)) {
+        geometry_msgs::Pose pose;
+        tf::poseTFToMsg(tp, pose);
+        wp_pub.publish(pose);
+        last_wp_pub = now;
+    }
 }
 
 } // namespace tb_simulation
