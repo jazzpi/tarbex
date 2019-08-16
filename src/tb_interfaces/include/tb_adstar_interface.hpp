@@ -39,6 +39,8 @@ protected:
 
     std::vector<unsigned char> get_mapdata();
 
+    std::tuple<int, int, int> calc_discrete_coords(double x, double y, double theta);
+
 private:
     bool reinit_env();
 };

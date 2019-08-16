@@ -55,17 +55,20 @@ void ADStarInterface::pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg) {
 
     if (!ready) return;
 
-    auto old_xyt = calc_2d_coords(old_pose);
-    auto xyt = calc_2d_coords(msg->pose);
-    double x = std::get<0>(xyt);
-    double y = std::get<1>(xyt);
-    double t = std::get<2>(xyt);
-    if (x == std::get<0>(old_xyt) && y == std::get<1>(old_xyt) &&
-        t == std::get<2>(old_xyt)) {
+    auto old_2d = calc_2d_coords(old_pose);
+    auto pose_2d = calc_2d_coords(pose);
+    auto old_xyt = calc_discrete_coords(std::get<0>(old_2d), std::get<1>(old_2d),
+                                        std::get<2>(old_2d));
+    auto xyt = calc_discrete_coords(std::get<0>(pose_2d), std::get<1>(pose_2d),
+                                    std::get<2>(pose_2d));
+    if (std::get<0>(xyt) == std::get<0>(old_xyt) &&
+        std::get<1>(xyt) == std::get<1>(old_xyt) &&
+        std::get<2>(xyt) == std::get<2>(old_xyt)) {
         return;
     }
 
-    int start_id = env.SetStart(x, y, t);
+    int start_id = env.SetStart(std::get<0>(pose_2d), std::get<1>(pose_2d),
+                                std::get<2>(pose_2d));
     if (start_id == -1) {
         ROS_ERROR("Couldn't update environment start");
         return;
@@ -156,6 +159,14 @@ bool ADStarInterface::replan(std::vector<geometry_msgs::Pose>& path) {
     publish_path(path);
 
     return true;
+}
+
+std::tuple<int, int, int> ADStarInterface::calc_discrete_coords(double x_, double y_, double theta_) {
+    int x = CONTXY2DISC(x_, 0.4);
+    int y = CONTXY2DISC(y_, 0.4);
+    int theta = env.ContTheta2DiscNew(theta_);
+
+    return std::make_tuple(x, y, theta);
 }
 
 bool ADStarInterface::reinit_env() {
