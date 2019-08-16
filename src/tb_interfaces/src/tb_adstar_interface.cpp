@@ -142,18 +142,12 @@ bool ADStarInterface::replan(std::vector<geometry_msgs::Pose>& path) {
     std::vector<sbpl_xy_theta_pt_t> xytheta;
     env.ConvertStateIDPathintoXYThetaPath(&solution_states, &xytheta);
 
-    double last_x = NAN;
-    double last_y = NAN;
-    for (const auto& p : xytheta) {
-        geometry_msgs::Pose po = calc_pose(std::make_tuple(p.x, p.y, p.theta));
-        if (p.x == last_x && p.y == last_y) {
-            // Compress multiple waypoints at the same point into one
-            *path.rbegin() = po;
-            continue;
-        }
+    compress_path(xytheta);
+
+    /* Skip the first pose - we're already there */
+    for (auto it = xytheta.begin() + 1; it < xytheta.end(); it++) {
+        geometry_msgs::Pose po = calc_pose(std::make_tuple(it->x, it->y, it->theta));
         path.push_back(po);
-        last_x = p.x;
-        last_y = p.y;
     }
 
     publish_path(path);
@@ -167,6 +161,53 @@ std::tuple<int, int, int> ADStarInterface::calc_discrete_coords(double x_, doubl
     int theta = env.ContTheta2DiscNew(theta_);
 
     return std::make_tuple(x, y, theta);
+}
+
+void ADStarInterface::compress_path(std::vector<sbpl_xy_theta_pt_t>& path) {
+    if (path.size() == 0) return;
+
+    auto last_point = path[0];
+    sbpl_2Dpt_t last_dir = {NAN, NAN};
+    std::vector<geometry_msgs::Pose> erased_turn;
+    std::vector<geometry_msgs::Pose> erased_dir;
+    std::vector<geometry_msgs::Pose> kept;
+    for (size_t i = 1; i < path.size();) {
+        auto p = path[i];
+        sbpl_2Dpt_t dir = {p.x - last_point.x, p.y - last_point.y};
+        normalize_dir(dir);
+        /* We want to erase in two cases:
+         *
+         * - When the position doesn't change (i.e. we're turning in place),
+         *   only keep the first and last one
+         * - When the direction doesn't change, only keep the last one
+         */
+        if (dir.x == 0 && dir.y == 0 && last_dir.x == 0 && last_dir.y == 0) {
+            erased_turn.push_back(calc_pose(std::make_tuple(last_point.x, last_point.y, last_point.theta)));
+            path.erase(path.begin() + (i - 1));
+        } else if (std::fabs(dir.x - last_dir.x) <= 0.01 &&
+                   std::fabs(dir.y - last_dir.y) <= 0.01 &&
+                   std::fabs(p.theta - last_point.theta) <= 0.01) {
+            erased_dir.push_back(calc_pose(std::make_tuple(last_point.x, last_point.y, last_point.theta)));
+            path.erase(path.begin() + (i - 1));
+        } else {
+            kept.push_back(calc_pose(std::make_tuple(last_point.x, last_point.y, last_point.theta)));
+            i++;
+        }
+        last_point = p;
+        last_dir = dir;
+    }
+
+    publish_path_vis(kept, 0, true);
+    publish_path_vis(erased_turn, 1);
+    publish_path_vis(erased_dir, 2);
+}
+
+void ADStarInterface::normalize_dir(sbpl_2Dpt_t& dir) {
+    double length = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+    if (length == 0) return;
+
+    dir.x /= length;
+    dir.y /= length;
 }
 
 bool ADStarInterface::reinit_env() {

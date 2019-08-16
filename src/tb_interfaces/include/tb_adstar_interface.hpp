@@ -41,6 +41,9 @@ protected:
 
     std::tuple<int, int, int> calc_discrete_coords(double x, double y, double theta);
 
+    void compress_path(std::vector<sbpl_xy_theta_pt_t>& path);
+    void normalize_dir(sbpl_2Dpt_t& dir);
+
 private:
     bool reinit_env();
 };
