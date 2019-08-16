@@ -23,12 +23,10 @@
     <remap from="/cloud_in" to="/depth_cloud_tf" />
     <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
       <!-- Make sure the projected map is actually at the height we want it to be at -->
-      <!-- TODO: This creates a pretty terrible map with lots of faux unexplored space.
-                 Maybe project the map ourselves with different z thresholds for
-                 exploration and obstacles? -->
-      <param name="occupancy_min_z" type="double" value="0.9" />
-      <param name="occupancy_max_z" type="double" value="1.1" />
+      <param name="occupancy_min_z" type="double" value="1.21" />
+      <param name="occupancy_max_z" type="double" value="1.59" />
       <param name="resolution" type="double" value="0.4" />
+      <param name="sensor_model/max_range" type="double" value="10.0" />
     </node>
   </group>
 </launch>
