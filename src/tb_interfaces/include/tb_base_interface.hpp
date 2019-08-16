@@ -25,6 +25,8 @@ protected:
     void publish_pose(const geometry_msgs::Pose& pose);
     void publish_pose(const geometry_msgs::Pose& pose, ros::Time stamp);
     void publish_path(const std::vector<geometry_msgs::Pose>& path);
+    void publish_path_vis(const std::vector<geometry_msgs::Pose>& path,
+                          int color = 0, bool delete_previous = false);
     void delete_poses();
 
     ros::NodeHandle nh;
@@ -41,7 +43,7 @@ protected:
     uint32_t path_id;
 
 private:
-    visualization_msgs::Marker pose_marker(const geometry_msgs::Pose& pose, ros::Time stamp);
+    visualization_msgs::Marker pose_marker(const geometry_msgs::Pose& pose, ros::Time stamp, int color = 0);
 };
 
 } // namespace tb_interfaces

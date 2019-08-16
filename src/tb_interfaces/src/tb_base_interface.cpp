@@ -41,6 +41,20 @@ void BaseInterface::publish_path(const std::vector<geometry_msgs::Pose> &path) {
     path_pub.publish(path_msg);
 }
 
+void BaseInterface::publish_path_vis(const std::vector<geometry_msgs::Pose>& path,
+                                     int color, bool delete_previous) {
+    if (delete_previous) {
+        delete_poses();
+    }
+    visualization_msgs::MarkerArray array;
+    ros::Time stamp = ros::Time::now();
+    for (const auto& p : path) {
+        array.markers.push_back(pose_marker(p, stamp, color));
+    }
+
+    vis_arr_pub.publish(array);
+}
+
 void BaseInterface::delete_poses() {
     visualization_msgs::Marker p;
     p.header.stamp = ros::Time::now();
@@ -54,7 +68,7 @@ void BaseInterface::delete_poses() {
     vis_pub.publish(p);
 }
 
-visualization_msgs::Marker BaseInterface::pose_marker(const geometry_msgs::Pose& pose, ros::Time stamp) {
+visualization_msgs::Marker BaseInterface::pose_marker(const geometry_msgs::Pose& pose, ros::Time stamp, int color) {
     visualization_msgs::Marker p;
     p.header.stamp = stamp;
     p.header.seq = vis_id;
@@ -65,14 +79,33 @@ visualization_msgs::Marker BaseInterface::pose_marker(const geometry_msgs::Pose&
     p.type = visualization_msgs::Marker::ARROW;
     p.action = visualization_msgs::Marker::ADD;
     p.pose = pose;
-    p.scale.x = 0.05;
-    p.scale.y = 0.1;
-    p.scale.z = 0.1;
-    p.color.r = 167.0 / 255.0;
-    p.color.g = 167.0 / 255.0;
-    p.color.b = 0.0;
+    switch (color) {
+    case 1:
+        p.scale.x = 0.1;
+        p.scale.y = 0.1;
+        p.scale.z = 0.05;
+        p.color.r = 167.0 / 255.0;
+        p.color.g = 0.0;
+        p.color.b = 0.0;
+        break;
+    case 2:
+        p.scale.x = 0.2;
+        p.scale.y = 0.1;
+        p.scale.z = 0.025;
+        p.color.r = 167.0 / 255.0;
+        p.color.g = 64.0 / 255.0;
+        p.color.b = 0.0;
+        break;
+    default:
+        p.scale.x = 0.05;
+        p.scale.y = 0.1;
+        p.scale.z = 0.1;
+        p.color.r = 167.0 / 255.0;
+        p.color.g = 167.0 / 255.0;
+        p.color.b = 0.0;
+        break;
+    }
     p.color.a = 1.0;
-    p.lifetime = ros::Duration(10.0);
     p.frame_locked = false;
 
     return p;
