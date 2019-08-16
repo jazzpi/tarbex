@@ -12,8 +12,8 @@ constexpr const char* WAYPOINT_TOPIC = "waypoint";
 constexpr const char* POSE_TOPIC = "pose";
 constexpr const char* PATH_TOPIC = "path";
 constexpr const char* FRAME_ID = "map";
-constexpr const double PATH_ORIG_EPSILON = 0.2;
-constexpr const double PATH_YAW_EPSILON = 0.05;
+constexpr const double PATH_ORIG_EPSILON = 0.1;
+constexpr const double PATH_YAW_EPSILON = 0.01;
 constexpr const double WP_THROTTLE = 1.0;
 
 class PathFollower {
