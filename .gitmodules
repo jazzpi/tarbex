@@ -7,3 +7,6 @@
 [submodule "src/sbpl"]
 	path = src/sbpl
 	url = git@github.com:jazzpi/sbpl.git
+[submodule "src/hector_navigation"]
+	path = src/hector_navigation
+	url = git@github.com:jazzpi/hector_navigation.git
