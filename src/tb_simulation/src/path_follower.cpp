@@ -40,8 +40,8 @@ void PathFollower::pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg
 
     while (current_target != path.end() &&
            diff.getOrigin().length() < PATH_ORIG_EPSILON &&
-           tf::getYaw(diff.getRotation()) < PATH_YAW_EPSILON) {
-        ROS_INFO("Reached target!");
+           std::fabs(tf::getYaw(diff.getRotation())) < PATH_YAW_EPSILON) {
+        ROS_INFO("Reached target with yaw diff: %f!", tf::getYaw(diff.getRotation()));
         advance_target(false);
         diff = current_target->inverseTimes(pose);
     }
