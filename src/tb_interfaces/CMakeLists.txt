@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   tb_simulation
   nav_msgs
   geometry_msgs
+  hector_nav_msgs
 )
 find_package(sbpl REQUIRED)
 
@@ -142,6 +143,10 @@ add_executable(tb_adstar_interface
   src/tb_base_interface.cpp
   src/tb_2d_interface.cpp
   )
+add_executable(tb_fbe_interface
+  src/tb_fbe_interface.cpp
+  src/tb_base_interface.cpp
+  )
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -157,6 +162,9 @@ add_executable(tb_adstar_interface
 target_link_libraries(tb_adstar_interface
   ${catkin_LIBRARIES}
   ${SBPL_LIBRARIES}
+)
+target_link_libraries(tb_fbe_interface
+  ${catkin_LIBRARIES}
 )
 
 #############
