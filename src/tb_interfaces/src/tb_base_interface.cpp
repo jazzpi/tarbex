@@ -9,7 +9,8 @@ BaseInterface::BaseInterface(ros::NodeHandle nh, ros::NodeHandle nh_private)
     : nh{nh},
       nh_private{nh_private},
       vis_id{0},
-      path_id{(uint32_t) -1}
+      path_id{(uint32_t) -1},
+      failed_replans{0}
 {
     planner = nh.advertiseService(PLANNER_SRV, &BaseInterface::plan_cb, this);
     pose_sub = nh_private.subscribe(POSE_TOPIC, 10, &BaseInterface::pose_cb, this);
@@ -17,6 +18,10 @@ BaseInterface::BaseInterface(ros::NodeHandle nh, ros::NodeHandle nh_private)
     path_pub = nh_private.advertise<geometry_msgs::PoseArray>(PATH_TOPIC, 10);
     vis_pub = nh_private.advertise<visualization_msgs::Marker>(VIS_TOPIC, 10);
     vis_arr_pub = nh_private.advertise<visualization_msgs::MarkerArray>(VIS_TOPIC + std::string("_array"), 10);
+    replan_timer = nh_private.createTimer(
+        ros::Duration(REPLAN_TIMER_INTERVAL), &BaseInterface::replan_timer_cb,
+        this);
+    replan_timer.stop();
 }
 
 void BaseInterface::pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg) {
@@ -24,6 +29,8 @@ void BaseInterface::pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg) {
 }
 
 void BaseInterface::target_reached_cb(const tb_simulation::TargetReached::ConstPtr&) {}
+
+void BaseInterface::replan_timer_cb(const ros::TimerEvent&) {}
 
 void BaseInterface::publish_pose(const geometry_msgs::Pose &pose) {
     publish_pose(pose, ros::Time::now());

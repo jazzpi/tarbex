@@ -15,6 +15,7 @@ protected:
     bool plan_cb(tb_simulation::PlanPath::Request& req,
                  tb_simulation::PlanPath::Response& res) override;
     void target_reached_cb(const tb_simulation::TargetReached::ConstPtr& msg) override;
+    void replan_timer_cb(const ros::TimerEvent& ev) override;
     bool replan();
     bool replan(std::vector<geometry_msgs::Pose>& path);
 

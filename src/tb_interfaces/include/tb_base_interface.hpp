@@ -15,6 +15,8 @@ constexpr const char* TARGET_REACHED = "target_reached";
 constexpr const char* POSE_TOPIC = "pose";
 constexpr const char* PATH_TOPIC = "path";
 constexpr const char* VIS_TOPIC = "vis";
+constexpr const double REPLAN_TIMER_INTERVAL = 2.0;
+constexpr const int REPLAN_TRIES_MAX = 10;
 
 class BaseInterface {
 public:
@@ -25,6 +27,7 @@ protected:
                          tb_simulation::PlanPath::Response& res) = 0;
     virtual void pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
     virtual void target_reached_cb(const tb_simulation::TargetReached::ConstPtr& msg);
+    virtual void replan_timer_cb(const ros::TimerEvent& ev);
     void publish_pose(const geometry_msgs::Pose& pose);
     void publish_pose(const geometry_msgs::Pose& pose, ros::Time stamp);
     void publish_path(const std::vector<geometry_msgs::Pose>& path);
@@ -38,6 +41,7 @@ protected:
     ros::ServiceServer planner;
     ros::Subscriber pose_sub;
     ros::Subscriber tgt_reached_sub;
+    ros::Timer replan_timer;
     ros::Publisher path_pub;
     ros::Publisher vis_pub;
     ros::Publisher vis_arr_pub;
@@ -45,6 +49,7 @@ protected:
     geometry_msgs::Pose pose;
     uint32_t vis_id;
     uint32_t path_id;
+    uint32_t failed_replans;
 
 private:
     visualization_msgs::Marker pose_marker(const geometry_msgs::Pose& pose, ros::Time stamp, int color = 0);

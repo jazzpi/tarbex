@@ -23,10 +23,28 @@ bool FBEInterface::plan_cb(tb_simulation::PlanPath::Request& req,
 void FBEInterface::target_reached_cb(const tb_simulation::TargetReached::ConstPtr& msg) {
     if (!ready || msg->path_id != path_id || (path_length > 1 && msg->target == 0)) return;
 
-    ROS_INFO("Reached target %u in path %u, while we're at path %u (length: %u)",
+    ROS_INFO("Reached target %zu in path %u, while we're at path %u (length: %zu)",
              msg->target, msg->path_id, path_id, path_length);
     if (!replan()) {
         ROS_WARN_THROTTLE(1, "Failed to replan after reaching target!");
+        failed_replans = 0;
+        replan_timer.start();
+    }
+}
+
+void FBEInterface::replan_timer_cb(const ros::TimerEvent&) {
+    if (!replan()) {
+        failed_replans++;
+        if (failed_replans >= REPLAN_TRIES_MAX) {
+            ROS_FATAL("Failed to replan %u times. Aborting.", failed_replans);
+            ros::shutdown();
+            exit(1);
+        }
+        ROS_WARN("Failed to replan %u times", failed_replans);
+    } else {
+        ROS_INFO("Recovered after failing to replan %u times", failed_replans);
+        replan_timer.stop();
+        failed_replans = 0;
     }
 }
 
@@ -50,7 +68,8 @@ bool FBEInterface::replan(std::vector<geometry_msgs::Pose>& path) {
     publish_path(path);
     path_length = path.size();
 
-    return true;
+    // TODO: Check if we've reached the target here?
+    return path_length > 0;
 }
 
 } // namespace tb_interfaces
