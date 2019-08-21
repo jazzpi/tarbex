@@ -9,6 +9,7 @@
 namespace tb_simulation {
 
 constexpr const char* WAYPOINT_TOPIC = "waypoint";
+constexpr const char* TGT_REACHED_TOPIC = "target_reached";
 constexpr const char* POSE_TOPIC = "pose";
 constexpr const char* PATH_TOPIC = "path";
 constexpr const char* FRAME_ID = "map";
@@ -24,11 +25,13 @@ protected:
     ros::NodeHandle nh_private;
 
     ros::Publisher wp_pub;
+    ros::Publisher tgt_pub;
     ros::Subscriber pose_sub;
     ros::Subscriber path_sub;
 
     std::vector<tf::Pose> path;
     std::vector<tf::Pose>::const_iterator current_target;
+    uint32_t path_id;
 
     bool ready;
     ros::Time last_wp_pub;
@@ -38,6 +41,7 @@ protected:
 
     void advance_target(bool do_publish = true);
     void publish_pose(const tf::Pose& tp, bool do_throttle = false);
+    void publish_target_reached();
 };
 
 } // namespace tb_simulation

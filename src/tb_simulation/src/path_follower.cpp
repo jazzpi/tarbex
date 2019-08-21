@@ -1,12 +1,13 @@
 #include "path_follower.hpp"
 
 #include <tb_simulation/PlanPath.h>
+#include <tb_simulation/TargetReached.h>
 
 namespace tb_simulation {
 
 #define ROS_INFO_POSE_THROTTLE(rate, name, pose) {  \
-        auto orig = pose.getOrigin();                                   \
-        auto rot = pose.getRotation();                                  \
+        auto orig = (pose).getOrigin();                                 \
+        auto rot = (pose).getRotation();                                \
         ROS_INFO_THROTTLE(rate, "%s: [%f, %f, %f], rot: (%f, %f, %f, %f)", \
                           name, orig.x(), orig.y(), orig.z(), rot.x(), rot.y(), rot.z(), rot.w()); \
     }
@@ -15,11 +16,13 @@ PathFollower::PathFollower(ros::NodeHandle nh, ros::NodeHandle nh_private)
     : nh{nh},
       nh_private{nh_private},
       ready{false},
-      last_wp_pub{ros::Time(0)}
+      last_wp_pub{ros::Time(0)},
+      path_id{(uint32_t) -1}
 {
     current_target = path.end();
 
-    wp_pub = nh.advertise<geometry_msgs::Pose>(WAYPOINT_TOPIC, 1);
+    wp_pub = nh.advertise<geometry_msgs::Pose>(WAYPOINT_TOPIC, 10);
+    tgt_pub = nh.advertise<TargetReached>(TGT_REACHED_TOPIC, 1);
     pose_sub = nh_private.subscribe(POSE_TOPIC, 10, &PathFollower::pose_callback, this);
     path_sub = nh_private.subscribe(PATH_TOPIC, 10, &PathFollower::path_callback, this);
 }
@@ -38,12 +41,17 @@ void PathFollower::pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg
     tf::poseMsgToTF(msg->pose, pose);
     tf::Pose diff = current_target->inverseTimes(pose);
 
+    bool advanced = false;
     while (current_target != path.end() &&
            diff.getOrigin().length() < PATH_ORIG_EPSILON &&
            std::fabs(tf::getYaw(diff.getRotation())) < PATH_YAW_EPSILON) {
         ROS_INFO("Reached target with yaw diff: %f!", tf::getYaw(diff.getRotation()));
         advance_target(false);
+        advanced = true;
         diff = current_target->inverseTimes(pose);
+    }
+    if (advanced) {
+        publish_target_reached();
     }
     if (current_target != path.end()) {
         publish_pose(*current_target, true);
@@ -74,6 +82,7 @@ void PathFollower::path_callback(const geometry_msgs::PoseArray::ConstPtr& msg) 
     }
     current_target = path.begin();
     ready = true;
+    path_id = msg->header.seq;
 }
 
 void PathFollower::advance_target(bool do_publish) {
@@ -91,6 +100,13 @@ void PathFollower::publish_pose(const tf::Pose& tp, bool do_throttle) {
         wp_pub.publish(pose);
         last_wp_pub = now;
     }
+}
+
+void PathFollower::publish_target_reached() {
+    TargetReached msg;
+    msg.path_id = path_id;
+    msg.target = current_target - path.begin() - 1;
+    tgt_pub.publish(msg);
 }
 
 } // namespace tb_simulation

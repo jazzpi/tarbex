@@ -9,10 +9,11 @@ BaseInterface::BaseInterface(ros::NodeHandle nh, ros::NodeHandle nh_private)
     : nh{nh},
       nh_private{nh_private},
       vis_id{0},
-      path_id{0}
+      path_id{(uint32_t) -1}
 {
     planner = nh.advertiseService(PLANNER_SRV, &BaseInterface::plan_cb, this);
     pose_sub = nh_private.subscribe(POSE_TOPIC, 10, &BaseInterface::pose_cb, this);
+    tgt_reached_sub = nh_private.subscribe(TARGET_REACHED, 10, &BaseInterface::target_reached_cb, this);
     path_pub = nh_private.advertise<geometry_msgs::PoseArray>(PATH_TOPIC, 10);
     vis_pub = nh_private.advertise<visualization_msgs::Marker>(VIS_TOPIC, 10);
     vis_arr_pub = nh_private.advertise<visualization_msgs::MarkerArray>(VIS_TOPIC + std::string("_array"), 10);
@@ -21,6 +22,8 @@ BaseInterface::BaseInterface(ros::NodeHandle nh, ros::NodeHandle nh_private)
 void BaseInterface::pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg) {
     pose = msg->pose;
 }
+
+void BaseInterface::target_reached_cb(const tb_simulation::TargetReached::ConstPtr&) {}
 
 void BaseInterface::publish_pose(const geometry_msgs::Pose &pose) {
     publish_pose(pose, ros::Time::now());
@@ -36,7 +39,7 @@ void BaseInterface::publish_path(const std::vector<geometry_msgs::Pose> &path) {
     geometry_msgs::PoseArray path_msg;
     path_msg.header.frame_id = "/map";
     path_msg.header.stamp = stamp;
-    path_msg.header.seq = path_id++;
+    path_msg.header.seq = ++path_id;
     path_msg.poses = path;
     path_pub.publish(path_msg);
 }
