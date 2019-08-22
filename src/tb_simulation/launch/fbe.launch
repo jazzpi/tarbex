@@ -2,8 +2,7 @@
   <include file="$(find tb_simulation)/launch/sim.launch" />
   <group>
     <remap from="/map" to="/projected_map" />
-    <node pkg="hector_exploration_node" type="exploration_planner_node" name="hector_exploration_node"
-          launch-prefix="$(find tb_simulation)/util/tmuxgdb">
+    <node pkg="hector_exploration_node" type="exploration_planner_node" name="hector_exploration_node">
       <rosparam command="load" file="$(find tb_simulation)/data/hector_params.yaml" />
     </node>
   </group>
@@ -11,7 +10,6 @@
     <remap from="/fbePlanner/pose" to="/indoor/pose" />
     <remap from="/fbePlanner/path" to="/path" />
     <remap from="/fbePlanner/target_reached" to="/target_reached" />
-    <node pkg="tb_interfaces" type="tb_fbe_interface" name="fbePlanner"
-          launch-prefix="$(find tb_simulation)/util/tmuxgdb" />
+    <node pkg="tb_interfaces" type="tb_fbe_interface" name="fbePlanner" />
   </group>
 </launch>

@@ -3,8 +3,7 @@
   <group>
     <remap from="input_octomap" to="/octomap_full" />
     <remap from="/pose" to="/indoor/pose" />
-    <node pkg="nbvplanner" type="nbvPlanner" name="nbvplanner"
-          launch-prefix="$(find tb_simulation)/util/tmuxgdb">
+    <node pkg="nbvplanner" type="nbvPlanner" name="nbvplanner">
       <param name="resolution" type="double" value="0.4" />
       <param name="tf_frame" type="string" value="/map" />
       <param name="robot_frame" type="string" value="base_link" />

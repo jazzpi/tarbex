@@ -11,8 +11,7 @@
     <remap from="/waypoint" to="/indoor/waypoint_controller" />
     <remap from="/path_follower/pose" to="/indoor/pose" />
     <remap from="/path_follower/path" to="/path" />
-    <node pkg="tb_simulation" type="path_follower" name="path_follower" output="screen"
-          launch-prefix="$(find tb_simulation)/util/tmuxgdb" />
+    <node pkg="tb_simulation" type="path_follower" name="path_follower" output="screen" />
   </group>
   <group>
     <remap from="/cloud_in" to="/indoor/depth_cloud" />

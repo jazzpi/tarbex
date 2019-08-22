@@ -32,3 +32,11 @@ It also publishes a 2D projected map to =/projected_map=, which ignores all
 voxels with y values outside of [0.8, 1.7]. These values where chosen so that 2D
 algorithms can be used for navigation at y = 1.3, where all the openings are
 located.
+
+To start it, run
+
+#+BEGIN_SRC sh
+roslaunch (adstar.launch|fbe.launch|nbvp.launch)
+# Or, with rosmon installed
+mon launch (adstar.launch|fbe.launch|nbvp.launch)
+#+END_SRC
