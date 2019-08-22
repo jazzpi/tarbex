@@ -34,6 +34,8 @@ protected:
     void publish_path_vis(const std::vector<geometry_msgs::Pose>& path,
                           int color = 0, bool delete_previous = false);
     void delete_poses();
+    tf::Vector3 normalized_dir(const geometry_msgs::Pose& p1,
+                               const geometry_msgs::Pose& p2);
 
     ros::NodeHandle nh;
     ros::NodeHandle nh_private;

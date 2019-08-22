@@ -61,10 +61,40 @@ bool FBEInterface::replan(std::vector<geometry_msgs::Pose>& path) {
     }
 
     path.clear();
-    for (auto& p : call.response.trajectory.poses) {
-        p.pose.position.z = 1.3;
-        path.push_back(p.pose);
+    auto& traj = call.response.trajectory.poses;
+    if (traj.size() < 3) {
+        for (auto& p : traj) {
+            p.pose.position.z = 1.3;
+            path.push_back(p.pose);
+        }
+    } else {
+        /* When the direction doesn't change, only keep first pose */
+        auto last_dir = normalized_dir(traj[0].pose, traj[1].pose);
+        auto first_p = traj.front().pose;
+        first_p.position.z = 1.3;
+        path.push_back(first_p);
+        std::vector<geometry_msgs::Pose> erased;
+        for (size_t i = 2; i < traj.size(); i++) {
+          auto p = traj[i - 1].pose;
+          auto dir = normalized_dir(p, traj[i].pose);
+          p.position.z = 1.3;
+          if ((dir - last_dir).length() <= DIR_DIFF_EPS) {
+              erased.push_back(p);
+          } else {
+              path.push_back(p);
+          }
+          last_dir = dir;
+        }
+        auto last_p = traj.back().pose;
+        last_p.position.z = 1.3;
+        path.push_back(last_p);
+        publish_path_vis(erased, 1, true);
+        ROS_INFO_THROTTLE(
+            1, "Erased %zu points from the trajectory. Publishing %zu/%zu points",
+            erased.size(), path.size(), traj.size()
+        );
     }
+
     publish_path(path);
     path_length = path.size();
 

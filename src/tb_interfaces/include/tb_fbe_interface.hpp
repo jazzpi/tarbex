@@ -6,6 +6,7 @@
 namespace tb_interfaces {
 
 constexpr const char* EXPLORATION_PATH_SRV = "/get_exploration_path";
+constexpr const double DIR_DIFF_EPS = 0.05;
 
 class FBEInterface : BaseInterface {
 public:

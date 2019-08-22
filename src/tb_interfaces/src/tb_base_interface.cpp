@@ -78,6 +78,16 @@ void BaseInterface::delete_poses() {
     vis_pub.publish(p);
 }
 
+tf::Vector3 BaseInterface::normalized_dir(const geometry_msgs::Pose& p1,
+                                          const geometry_msgs::Pose& p2) {
+    tf::Vector3 dir;
+    tf::pointMsgToTF(p1.position, dir);
+    tf::Vector3 p2_;
+    tf::pointMsgToTF(p2.position, p2_);
+    dir -= p2_;
+    return dir.normalize();
+}
+
 visualization_msgs::Marker BaseInterface::pose_marker(const geometry_msgs::Pose& pose, ros::Time stamp, int color) {
     visualization_msgs::Marker p;
     p.header.stamp = stamp;
