@@ -33,6 +33,7 @@ protected:
     void publish_path(const std::vector<geometry_msgs::Pose>& path);
     void publish_path_vis(const std::vector<geometry_msgs::Pose>& path,
                           int color = 0, bool delete_previous = false);
+    void publish_target_vis(const geometry_msgs::Pose& tgt);
     void delete_poses();
     tf::Vector3 normalized_dir(const geometry_msgs::Pose& p1,
                                const geometry_msgs::Pose& p2);
@@ -49,7 +50,10 @@ protected:
     ros::Publisher vis_arr_pub;
 
     geometry_msgs::Pose pose;
-    uint32_t vis_id;
+    uint32_t vis_seq;
+    uint32_t path_vis_id;
+    uint32_t last_path_vis_id;
+    uint32_t target_vis_id;
     uint32_t path_id;
     uint32_t failed_replans;
 

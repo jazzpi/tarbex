@@ -14,6 +14,7 @@ FBEInterface::FBEInterface(ros::NodeHandle nh, ros::NodeHandle nh_private)
 bool FBEInterface::plan_cb(tb_simulation::PlanPath::Request& req,
                            tb_simulation::PlanPath::Response& res) {
     target = req.target;
+    publish_target_vis(target);
 
     replan(res.path);
     ready = true;
