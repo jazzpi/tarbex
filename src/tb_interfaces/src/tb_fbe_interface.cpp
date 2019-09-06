@@ -1,6 +1,6 @@
 #include "tb_fbe_interface.hpp"
 
-#include <hector_nav_msgs/GetRobotTrajectory.h>
+#include <nav_msgs/GetPlan.h>
 
 namespace tb_interfaces {
 
@@ -8,7 +8,7 @@ FBEInterface::FBEInterface(ros::NodeHandle nh, ros::NodeHandle nh_private)
     : BaseInterface{nh, nh_private},
       ready{false}
 {
-    get_exploration_path = nh.serviceClient<hector_nav_msgs::GetRobotTrajectory>(EXPLORATION_PATH_SRV);
+    get_exploration_path = nh.serviceClient<nav_msgs::GetPlan>(EXPLORATION_PATH_SRV);
 }
 
 bool FBEInterface::plan_cb(tb_simulation::PlanPath::Request& req,
@@ -54,14 +54,16 @@ bool FBEInterface::replan() {
 }
 
 bool FBEInterface::replan(std::vector<geometry_msgs::Pose>& path) {
-    hector_nav_msgs::GetRobotTrajectory call;
+    nav_msgs::GetPlan call;
+    call.request.goal.header.frame_id = "/map";
+    call.request.goal.pose = target;
     if (!get_exploration_path.call(call)) {
         ROS_WARN_THROTTLE(1, "Failed to get exploration path!");
         return false;
     }
 
     path.clear();
-    auto& traj = call.response.trajectory.poses;
+    auto& traj = call.response.plan.poses;
     if (traj.size() < 3) {
         for (auto& p : traj) {
             p.pose.position.z = 1.3;
