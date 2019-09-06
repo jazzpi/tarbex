@@ -22,3 +22,4 @@ global_costmap:
     cost_scaling_factor: 10.0
   hector_exploration_planner:
     plan_in_unknown: false
+    min_obstacle_dist: 2
