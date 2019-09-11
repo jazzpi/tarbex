@@ -1,6 +1,6 @@
 #include "tb_nbvp_interface.hpp"
 
-#include <nbvplanner/nbvp_srv.h>
+#include <tb_simulation/PlanPath.h>
 
 namespace tb_interfaces {
 
@@ -15,7 +15,7 @@ NBVPInterface::NBVPInterface(ros::NodeHandle nh, ros::NodeHandle nh_private)
     : BaseInterface{nh, nh_private},
       ready{false}
 {
-    get_exploration_path = nh.serviceClient<nbvplanner::nbvp_srv>(NBVP_SRV);
+    get_exploration_path = nh.serviceClient<tb_simulation::PlanPath>(NBVP_SRV);
     get_exploration_path.waitForExistence();
 }
 
@@ -43,10 +43,11 @@ bool NBVPInterface::replan() {
 }
 
 bool NBVPInterface::replan(std::vector<geometry_msgs::Pose>& path) {
-    nbvplanner::nbvp_srv call;
+    tb_simulation::PlanPath call;
     call.request.header.seq = plan_seq++;
     call.request.header.stamp = ros::Time::now();
     call.request.header.frame_id = FRAME_ID;
+    call.request.target = target;
 
     if (!get_exploration_path.call(call)) {
         ROS_WARN_THROTTLE(1, "Couldn't reach the planner service at %s", NBVP_SRV);
