@@ -105,10 +105,15 @@ void BaseInterface::delete_poses() {
     p.type = visualization_msgs::Marker::ARROW;
     p.action = visualization_msgs::Marker::DELETE;
 
+    visualization_msgs::MarkerArray msg;
+
     for (uint32_t id = last_path_vis_id; id < path_vis_id; id++) {
+        p.header.seq = vis_seq++;
         p.id = id;
-        vis_pub.publish(p);
+        msg.markers.push_back(p);
     }
+
+    vis_arr_pub.publish(msg);
 
     last_path_vis_id = path_vis_id;
 }
