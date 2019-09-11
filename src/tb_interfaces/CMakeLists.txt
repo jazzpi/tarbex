@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   tb_simulation
   nav_msgs
   geometry_msgs
+  nbvplanner
   hector_nav_msgs
 )
 find_package(sbpl REQUIRED)
@@ -109,7 +110,7 @@ find_package(sbpl REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES tb_interfaces
-  CATKIN_DEPENDS message_runtime roscpp tb_simulation
+  CATKIN_DEPENDS message_runtime roscpp tb_simulation nbvplanner
 #  DEPENDS system_lib
 )
 
@@ -147,6 +148,10 @@ add_executable(tb_fbe_interface
   src/tb_fbe_interface.cpp
   src/tb_base_interface.cpp
   )
+add_executable(tb_nbvp_interface
+  src/tb_nbvp_interface.cpp
+  src/tb_base_interface.cpp
+  )
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -164,6 +169,9 @@ target_link_libraries(tb_adstar_interface
   ${SBPL_LIBRARIES}
 )
 target_link_libraries(tb_fbe_interface
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(tb_nbvp_interface
   ${catkin_LIBRARIES}
 )
 

@@ -16,4 +16,10 @@
       <rosparam command="load" file="$(find tb_simulation)/data/nbvp_params.yaml" />
     </node>
   </group>
+  <group>
+    <remap from="/nbvpInterface/pose" to="/indoor/pose" />
+    <remap from="/nbvpInterface/path" to="/path" />
+    <remap from="/nbvpInterface/target_reached" to="/target_reached" />
+    <node pkg="tb_interfaces" type="tb_nbvp_interface" name="nbvpInterface" />
+  </group>
 </launch>
