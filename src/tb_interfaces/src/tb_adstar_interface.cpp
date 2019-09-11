@@ -32,14 +32,12 @@ ADStarInterface::ADStarInterface(ros::NodeHandle nh, ros::NodeHandle nh_private)
     pt.x = -l_half;
     pt.y = w_half;
     robot_perimeters.push_back(pt);
-
-    ROS_INFO("map topic: %s", map_sub.getTopic().c_str());
-    ROS_INFO("publishers: %u", map_sub.getNumPublishers());
 }
 
 bool ADStarInterface::plan_cb(tb_simulation::PlanPath::Request& req,
                               tb_simulation::PlanPath::Response& res) {
     target = req.target;
+    publish_target_vis(target);
 
     if (!reinit_env()) {
         return false;
@@ -47,8 +45,43 @@ bool ADStarInterface::plan_cb(tb_simulation::PlanPath::Request& req,
 
     ready = true;
 
-    replan(res.path);
+    ROS_INFO("Publishing new path because of service call");
+    res.path = publish_xytheta(replan());
+
     return true;
+}
+
+void ADStarInterface::target_reached_cb(const tb_simulation::TargetReached::ConstPtr& msg) {
+    current_target = msg->target + 1;
+
+    if (!ready || msg->path_id != path_id || (current_path.size() > 1 && msg->target == 0)) return;
+
+    auto xytheta = replan();
+    if (xytheta.size() == 0) {
+      ROS_WARN_THROTTLE(1, "Failed to replan after reaching target!");
+      // TODO: Start replan timer?
+    } else if (path_changed(xytheta)) {
+        ROS_INFO("Publishing new path because the target was reached and the path changed");
+        publish_xytheta(xytheta);
+    } else {
+        ROS_INFO("Not publishing new path because it didn't change after target was reached");
+    }
+}
+
+std::vector<geometry_msgs::Pose> ADStarInterface::publish_xytheta(const std::vector<sbpl_xy_theta_pt_t>& xytheta) {
+    std::vector<geometry_msgs::Pose> path;
+
+    /* Skip the first pose - we're already there */
+    for (auto it = xytheta.begin() + 1; it < xytheta.end(); it++) {
+        geometry_msgs::Pose po = calc_pose(std::make_tuple(it->x, it->y, it->theta));
+        path.push_back(po);
+    }
+
+    current_path = xytheta;
+    current_target = 0;
+    publish_path(path);
+
+    return path;
 }
 
 void ADStarInterface::pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg) {
@@ -79,9 +112,6 @@ void ADStarInterface::pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg) {
         ROS_ERROR("Couldn't update planner start");
         return;
     }
-
-    std::vector<geometry_msgs::Pose> path;
-    replan(path);
 }
 
 std::vector<unsigned char> ADStarInterface::get_mapdata() {
@@ -116,45 +146,42 @@ void ADStarInterface::process_map_updates(
     env.GetPredsofChangedEdges(&changed_cells, &preds);
     planner->update_preds_of_changededges(&preds);
 
-    std::vector<geometry_msgs::Pose> path;
-    replan(path);
+    auto xytheta = replan();
+    if (path_changed(xytheta)) {
+        ROS_INFO("Publishing new path because of map update");
+        publish_xytheta(xytheta);
+    } else {
+        ROS_INFO("Not publishing new path because it didn't change after map update");
+    }
 }
 
 void ADStarInterface::process_map_replaced() {
     reinit_env();
 }
 
-bool ADStarInterface::replan(std::vector<geometry_msgs::Pose>& path) {
+std::vector<sbpl_xy_theta_pt_t> ADStarInterface::replan() {
+    std::vector<sbpl_xy_theta_pt_t> xytheta;
     std::vector<int> solution_states;
-    ROS_INFO("Start planning...");
+    ROS_DEBUG("Start planning...");
     int ret;
     try {
         ret = planner->replan(3.0, &solution_states);
     } catch (SBPL_Exception e) {
         ROS_ERROR("Planner threw an exception: %s", e.what());
-        return false;
+        return xytheta;
     }
     if (ret) {
-        ROS_INFO("Done! Size of solution = %zu", solution_states.size());
+        ROS_DEBUG("Done! Size of solution = %zu", solution_states.size());
     } else {
         ROS_WARN("Couldn't find a solution!");
-        return false;
+        return xytheta;
     }
 
-    std::vector<sbpl_xy_theta_pt_t> xytheta;
     env.ConvertStateIDPathintoXYThetaPath(&solution_states, &xytheta);
 
     compress_path(xytheta);
 
-    /* Skip the first pose - we're already there */
-    for (auto it = xytheta.begin() + 1; it < xytheta.end(); it++) {
-        geometry_msgs::Pose po = calc_pose(std::make_tuple(it->x, it->y, it->theta));
-        path.push_back(po);
-    }
-
-    publish_path(path);
-
-    return true;
+    return xytheta;
 }
 
 std::tuple<int, int, int> ADStarInterface::calc_discrete_coords(double x_, double y_, double theta_) {
@@ -163,6 +190,22 @@ std::tuple<int, int, int> ADStarInterface::calc_discrete_coords(double x_, doubl
     int theta = env.ContTheta2DiscNew(theta_);
 
     return std::make_tuple(x, y, theta);
+}
+
+bool ADStarInterface::path_changed(const std::vector<sbpl_xy_theta_pt_t>& new_path) {
+    if (new_path.size() + current_target != current_path.size()) {
+        return true;
+    }
+
+    // If fresh path, don't check the first taret -- we're already there anyways
+    uint64_t i = (current_target == 0) ? 1 : 0;
+    for (; i < new_path.size(); i++) {
+        if (!(new_path[current_target + i] == current_path[i])) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void ADStarInterface::compress_path(std::vector<sbpl_xy_theta_pt_t>& path) {

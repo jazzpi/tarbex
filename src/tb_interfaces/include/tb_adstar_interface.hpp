@@ -26,21 +26,27 @@ protected:
     bool plan_cb(tb_simulation::PlanPath::Request& req,
                  tb_simulation::PlanPath::Response& res) override;
     void pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg) override;
+    void target_reached_cb(const tb_simulation::TargetReached::ConstPtr& msg) override;
+    std::vector<geometry_msgs::Pose> publish_xytheta(const std::vector<sbpl_xy_theta_pt_t>& path);
     void process_map_updates(const std::vector<std::tuple<int, int, int8_t>>& updated_cells) override;
     void process_map_replaced() override;
-    bool replan(std::vector<geometry_msgs::Pose>& path);
+    std::vector<sbpl_xy_theta_pt_t> replan();
 
     std::vector<sbpl_2Dpt_t> robot_perimeters;
     EnvironmentNAVXYTHETALAT env;
     MDPConfig mdp_cfg;
     std::unique_ptr<ADPlanner> planner;
     bool ready;
+    size_t path_length;
+    std::vector<sbpl_xy_theta_pt_t> current_path;
+    uint64_t current_target;
     geometry_msgs::Pose target;
 
     std::vector<unsigned char> get_mapdata();
 
     std::tuple<int, int, int> calc_discrete_coords(double x, double y, double theta);
 
+    bool path_changed(const std::vector<sbpl_xy_theta_pt_t>& new_path);
     void compress_path(std::vector<sbpl_xy_theta_pt_t>& path);
     void normalize_dir(sbpl_2Dpt_t& dir);
 
