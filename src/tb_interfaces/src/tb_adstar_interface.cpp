@@ -14,10 +14,15 @@ ADStarInterface::ADStarInterface(ros::NodeHandle nh, ros::NodeHandle nh_private)
     : Interface2D(nh, nh_private),
       ready{false}
 {
-    // TODO: This is too small (one cell), but we can only use 1 or 3 cells --
-    // how to fix?
-    double w_half = 0.1;
-    double l_half = 0.1;
+    init_params();
+}
+
+void ADStarInterface::init_params() {
+    double w, l;
+    nh_private.param<double>("bbx_width", w, 0.5);
+    nh_private.param<double>("bbx_length", l, 0.5);
+    double w_half = w / 2;
+    double l_half = l / 2;
 
     sbpl_2Dpt_t pt;
     pt.x = -l_half;
