@@ -19,12 +19,19 @@ PathFollower::PathFollower(ros::NodeHandle nh, ros::NodeHandle nh_private)
       last_wp_pub{ros::Time(0)},
       path_id{(uint32_t) -1}
 {
+    init_params();
     current_target = path.end();
 
     wp_pub = nh.advertise<geometry_msgs::Pose>(WAYPOINT_TOPIC, 10);
     tgt_pub = nh.advertise<TargetReached>(TGT_REACHED_TOPIC, 1);
     pose_sub = nh_private.subscribe(POSE_TOPIC, 10, &PathFollower::pose_callback, this);
     path_sub = nh_private.subscribe(PATH_TOPIC, 10, &PathFollower::path_callback, this);
+}
+
+void PathFollower::init_params() {
+    nh_private.param<double>("path_orig_epsilon", path_orig_epsilon, 0.1);
+    nh_private.param<double>("path_yaw_epsilon", path_yaw_epsilon, 0.01);
+    nh_private.param<double>("wp_throttle", wp_throttle, 1.0);
 }
 
 void PathFollower::pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
@@ -43,8 +50,8 @@ void PathFollower::pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg
 
     bool advanced = false;
     while (current_target != path.end() &&
-           diff.getOrigin().length() < PATH_ORIG_EPSILON &&
-           std::fabs(tf::getYaw(diff.getRotation())) < PATH_YAW_EPSILON) {
+           diff.getOrigin().length() < path_orig_epsilon &&
+           std::fabs(tf::getYaw(diff.getRotation())) < path_yaw_epsilon) {
         ROS_INFO("Reached target with yaw diff: %f!", tf::getYaw(diff.getRotation()));
         advance_target(false);
         advanced = true;
@@ -94,7 +101,7 @@ void PathFollower::advance_target(bool do_publish) {
 
 void PathFollower::publish_pose(const tf::Pose& tp, bool do_throttle) {
     ros::Time now = ros::Time::now();
-    if (!do_throttle || now - last_wp_pub >= ros::Duration(WP_THROTTLE)) {
+    if (!do_throttle || now - last_wp_pub >= ros::Duration(wp_throttle)) {
         geometry_msgs::Pose pose;
         tf::poseTFToMsg(tp, pose);
         wp_pub.publish(pose);

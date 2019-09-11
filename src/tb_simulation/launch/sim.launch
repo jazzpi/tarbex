@@ -1,4 +1,6 @@
 <launch>
+  <arg name="pf_orig_epsilon" default="0.1" />
+  <arg name="pf_yaw_epsilon" default="0.01" />
   <group>
     <remap from="/pose" to="/indoor/pose" />
     <node pkg="tb_simulation" type="map_link_broadcaster" name="map_link_broadcaster" />
@@ -11,7 +13,10 @@
     <remap from="/waypoint" to="/indoor/waypoint_controller" />
     <remap from="/path_follower/pose" to="/indoor/pose" />
     <remap from="/path_follower/path" to="/path" />
-    <node pkg="tb_simulation" type="path_follower" name="path_follower" output="screen" />
+    <node pkg="tb_simulation" type="path_follower" name="path_follower" output="screen">
+      <param name="path_orig_epsilon" type="double" value="$(arg pf_orig_epsilon)" />
+      <param name="path_yaw_epsilon" type="double" value="$(arg pf_yaw_epsilon)" />
+    </node>
   </group>
   <group>
     <remap from="/cloud_in" to="/indoor/depth_cloud" />
