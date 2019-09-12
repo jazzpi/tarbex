@@ -5,6 +5,7 @@
 from __future__ import print_function
 import os
 import sys
+import threading
 from copy import deepcopy
 
 import numpy as np
@@ -54,6 +55,7 @@ class Manager:
         self.running_nodes = []
         self._got_map = False
         self._got_pose = False
+        self._running = True
         self.pose = Pose()
         self._wait_for_rosmon()
         self._wait_for_init()
@@ -66,7 +68,7 @@ class Manager:
     @staticmethod
     def _wait_for(pred):
         """Emulate rospy.spin() until pred() returns True."""
-        rate = rospy.Rate(0.5)
+        rate = rospy.Rate(2)
         while not pred() and not rospy.core.is_shutdown():
             rate.sleep()
 
@@ -175,9 +177,20 @@ class Manager:
 
     def rosmon_state_cb(self, msg):
         """Filter out running nodes and check if any failed."""
-        # TODO: Check if any nodes failed -> abort
         self.running_nodes = map(lambda n: (n.name, n.ns),
                                  filter(lambda n: n.state == 1, msg.nodes))
+        if self._running and len(self.running_nodes) < len(msg.nodes):
+            failed_nodes = ", ".join(
+                map(lambda n: "{} -> {}".format(n.name, n.state),
+                    filter(lambda n: n.state != 1, msg.nodes))
+            )
+            # If we call abort() in this thread, we won't get new State
+            # messages, so call it in a new thread.
+            self._running = False
+            threading.Thread(
+                target=self.abort,
+                args=("Nodes failed: [" + failed_nodes + "]",)
+            ).start()
 
     def map_cb(self, msg):
         """Check if door is in map, shutdown if it is."""
@@ -199,8 +212,7 @@ class Manager:
             )
         elif msg.data[y_i * msg.info.width + x_i] != -1:
             rospy.loginfo_throttle(1, "Done!")
-            while self.running_nodes:
-                self.shutdown()
+            self.shutdown()
 
     def pose_cb(self, msg):
         """Update current pose and check if UAV is still moving (TODO)."""
@@ -210,6 +222,7 @@ class Manager:
     def shutdown(self):
         """Shutdown all other nodes, then this node itself."""
         # TODO: Send finish signal to logger
+        self._running = False
         srv = self._find_rosmon_srv(rosservice.get_service_list(),
                                     "/start_stop")
         if srv == "":
@@ -219,19 +232,27 @@ class Manager:
             return
 
         start_stop = rospy.ServiceProxy(srv, StartStop)
-        for node, namespace in self.running_nodes:
-            rospy.loginfo("Stopping %s/%s", namespace, node)
-            start_stop(node, namespace, start_stop.request_class.STOP)
+        rospy.loginfo("Shutting down remaining nodes...")
+        while self.running_nodes:
+            for node, namespace in self.running_nodes:
+                rospy.loginfo("Stopping %s/%s", namespace, node)
+                start_stop(node, namespace, start_stop.request_class.STOP)
 
-        rospy.sleep(5)
+            rospy.sleep(5)
 
-        if self.running_nodes:
-            rospy.loginfo("Running nodes: %s", ", ".join(
-                map(lambda n: n[0], self.running_nodes)
-            ))
-        else:
-            rospy.loginfo("Shutting down!")
-            rospy.signal_shutdown("Done")
+            if self.running_nodes:
+                rospy.loginfo("running nodes: %s", ", ".join(
+                    map(lambda n: n[0], self.running_nodes)
+                ))
+
+        rospy.loginfo("shutting down!")
+        rospy.signal_shutdown("done")
+
+    def abort(self, reason):
+        """Abort the simulation."""
+        rospy.logerr("Aborting! %s", reason)
+        # TODO: Send abort signal to logger
+        self.shutdown()
 
 
 def main():
