@@ -1,0 +1,171 @@
+#!/usr/bin/env python2
+
+from __future__ import print_function
+import os
+import sys
+
+import numpy as np
+
+import rospy
+import rosservice
+
+from nav_msgs.msg import OccupancyGrid
+from rosmon_msgs.msg import State
+from rosmon_msgs.srv import StartStop
+from tb_simulation.srv import PlanPath
+from std_msgs.msg import Header
+from geometry_msgs.msg import Pose, Point, Quaternion
+
+
+class Manager:
+    """
+    Manage the simulation.
+
+    - Performs initialization motion once all nodes are ready (TODO)
+    - Starts the path planning towards (towards 0.8m on the other side
+      of the door)
+    - Shuts down nodes when done/a node failed/after a 10 min timeout
+    """
+
+    def __init__(self):
+        rospy.init_node("sim_manager", anonymous=False)
+        rospy.Subscriber("/projected_map", OccupancyGrid, self.map_cb)
+
+        args = rospy.myargv()
+        if len(args) != 4:
+            print("Usage: {} DOOR_X DOOR_Y KNOWN_YAW".format(args[0]),
+                  file=sys.stderr)
+            sys.exit(os.EX_USAGE)
+
+        self.door = (float(args[1]), float(args[2]))
+        self.known_yaw = float(args[3])
+        self.tgt = (self.door[0] - np.cos(self.known_yaw) * 0.8,
+                    self.door[1] - np.sin(self.known_yaw) * 0.8)
+        rospy.loginfo("Door: %f|%f - yaw: %f => %f|%f", self.door[0],
+                      self.door[1], self.known_yaw, self.tgt[0], self.tgt[1])
+
+        self.running_nodes = []
+        self._wait_for_rosmon()
+
+        # TODO: Wait for everyone to be ready (esp. octomap_server)
+        # TODO: Perform initialization motion
+        # TODO: Measure time from here. More then 10 minutes -> abort
+        self._plan_path()
+
+    def _wait_for_rosmon(self):
+        """ Wait for the rosmon state topic and subscribe."""
+        topic = self._find_rosmon_topic(rospy.get_published_topics(), "/state")
+        while topic == "":
+            rospy.sleep(1)
+            topic = self._find_rosmon_topic(rospy.get_published_topics(),
+                                            "/state")
+
+        self.rosmon_state_sub = rospy.Subscriber(topic, State,
+                                                 self.rosmon_state_cb)
+
+    def _plan_path(self):
+        """Call the /plan_path service."""
+        rospy.wait_for_service("/plan_path")
+        plan_path = rospy.ServiceProxy("/plan_path", PlanPath)
+        plan_path(
+            Header(0, rospy.Time.now(), "/map"),
+            Pose(
+                Point(self.tgt[0], self.tgt[1], 1.3),
+                Quaternion()
+            )
+        )
+
+    @staticmethod
+    def _find_rosmon_topic(topics, name):
+        """Find a rosmon topic ending in the given name.
+
+        Arguments:
+        topics -- List of topics, e.g. from rospy.get_published_topics()
+        name   -- The name of the topic
+
+        Return:
+        The full name of the topic or "" if no topic was found.
+        """
+        for topic, _ in topics:
+            if topic.startswith("/rosmon") and topic.endswith(name):
+                return topic
+        return ""
+
+    @staticmethod
+    def _find_rosmon_srv(services, name):
+        """Find a rosmon service ending in the given name.
+
+        Arguments:
+        services -- List of services, e.g. from
+                    rosservice.get_service_list()
+        name     -- The name of the service
+
+        Return:
+        The full name of the service or "" if no service was found.
+        """
+        for srv in services:
+            if srv.startswith("/rosmon") and srv.endswith(name):
+                return srv
+        return ""
+
+    def rosmon_state_cb(self, msg):
+        """Filter out running nodes and check if any failed."""
+        # TODO: Check if any nodes failed -> abort
+        self.running_nodes = map(lambda n: (n.name, n.ns),
+                                 filter(lambda n: n.state == 1, msg.nodes))
+
+    def map_cb(self, msg):
+        """Check if door is in map, shutdown if it is."""
+        x_i = int(
+            (self.door[0] - msg.info.origin.position.x) / msg.info.resolution
+        )
+        y_i = int(
+            (self.door[1] - msg.info.origin.position.y) / msg.info.resolution
+        )
+
+        if x_i < 0 or x_i >= msg.info.width or y_i < 0 or y_i >= msg.info.height:
+            rospy.logwarn_throttle(
+                5,
+                "Target outside of map (should be at %f|%f, but map is only "
+                "%fx%f)" % (x_i, y_i, msg.info.width, msg.info.height)
+            )
+        elif msg.data[y_i * msg.info.width + x_i] != -1:
+            rospy.loginfo_throttle(1, "Done!")
+            while self.running_nodes:
+                self.shutdown()
+
+    def shutdown(self):
+        """Shutdown all other nodes, then this node itself."""
+        # TODO: Send finish signal to logger
+        srv = self._find_rosmon_srv(rosservice.get_service_list(),
+                                    "/start_stop")
+        if srv == "":
+            rospy.logerr_throttle(
+                1, "rosmon /start_stop service is not available?!"
+            )
+            return
+
+        start_stop = rospy.ServiceProxy(srv, StartStop)
+        for node, namespace in self.running_nodes:
+            rospy.loginfo("Stopping %s/%s", namespace, node)
+            start_stop(node, namespace, start_stop.request_class.STOP)
+
+        rospy.sleep(5)
+
+        if self.running_nodes:
+            rospy.loginfo("Running nodes: %s", ", ".join(
+                map(lambda n: n[0], self.running_nodes)
+            ))
+        else:
+            rospy.loginfo("Shutting down!")
+            rospy.signal_shutdown("Done")
+
+
+def main():
+    """Usage: sim_manager DOOR_X DOOR_Y KNOWN_YAW"""
+    Manager()
+    rospy.spin()
+
+
+if __name__ == "__main__":
+    main()
