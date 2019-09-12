@@ -1,5 +1,7 @@
 #!/usr/bin/env python2
 
+"""Usage: sim_manager DOOR_X DOOR_Y KNOWN_YAW"""
+
 from __future__ import print_function
 import os
 import sys
@@ -27,9 +29,12 @@ class Manager:
     - Shuts down nodes when done/a node failed/after a 10 min timeout
     """
 
+    # pylint: disable=too-many-instance-attributes
+
     def __init__(self):
         rospy.init_node("sim_manager", anonymous=False)
         rospy.Subscriber("/projected_map", OccupancyGrid, self.map_cb)
+        rospy.Subscriber("/indoor/pose", Pose, self.pose_cb)
 
         args = rospy.myargv()
         if len(args) != 4:
@@ -45,9 +50,12 @@ class Manager:
                       self.door[1], self.known_yaw, self.tgt[0], self.tgt[1])
 
         self.running_nodes = []
+        self._got_map = False
+        self._got_pose = False
+        self.pose = Pose()
         self._wait_for_rosmon()
+        self._wait_for_init()
 
-        # TODO: Wait for everyone to be ready (esp. octomap_server)
         # TODO: Perform initialization motion
         # TODO: Measure time from here. More then 10 minutes -> abort
         self._plan_path()
@@ -63,9 +71,24 @@ class Manager:
         self.rosmon_state_sub = rospy.Subscriber(topic, State,
                                                  self.rosmon_state_cb)
 
+    def _wait_for_init(self):
+        """
+        Wait for all nodes to be initialized.
+
+        This should be the case once the /plan_path service is available
+        and the first map and pose messages has been received, since all
+        other nodes must be up before that.
+        """
+        rospy.wait_for_service("/plan_path")
+        rospy.loginfo("/plan_path is up!")
+
+        while (not (self._got_map and self._got_pose) and
+               not rospy.core.is_shutdown()):
+            rospy.rostime.wallsleep(0.5)
+        rospy.loginfo("Got a map + pose, ready to go!")
+
     def _plan_path(self):
         """Call the /plan_path service."""
-        rospy.wait_for_service("/plan_path")
         plan_path = rospy.ServiceProxy("/plan_path", PlanPath)
         plan_path(
             Header(0, rospy.Time.now(), "/map"),
@@ -116,6 +139,8 @@ class Manager:
 
     def map_cb(self, msg):
         """Check if door is in map, shutdown if it is."""
+        self._got_map = True
+
         x_i = int(
             (self.door[0] - msg.info.origin.position.x) / msg.info.resolution
         )
@@ -133,6 +158,11 @@ class Manager:
             rospy.loginfo_throttle(1, "Done!")
             while self.running_nodes:
                 self.shutdown()
+
+    def pose_cb(self, msg):
+        """Update current pose and check if UAV is still moving (TODO)."""
+        self._got_pose = True
+        self.pose = msg
 
     def shutdown(self):
         """Shutdown all other nodes, then this node itself."""
