@@ -22,6 +22,9 @@ from std_msgs.msg import Header
 from geometry_msgs.msg import PoseArray, Pose, PoseStamped, Point, Quaternion
 
 
+TIMEOUT_SEC = 10 * 60
+
+
 class Manager:
     """
     Manage the simulation.
@@ -62,7 +65,7 @@ class Manager:
 
         self._target_reached = -1
         self._initialization_motion()
-        # TODO: Measure time from here. More then 10 minutes -> abort
+        rospy.Timer(rospy.Duration(TIMEOUT_SEC), self.timeout_cb, True)
         self._plan_path()
 
     @staticmethod
@@ -218,6 +221,10 @@ class Manager:
         """Update current pose and check if UAV is still moving (TODO)."""
         self._got_pose = True
         self.pose = msg.pose
+
+    def timeout_cb(self, _):
+        """Abort the simulation because it took too long."""
+        self.abort("Timeout")
 
     def shutdown(self):
         """Shutdown all other nodes, then this node itself."""
