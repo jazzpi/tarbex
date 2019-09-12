@@ -5,28 +5,30 @@
 from __future__ import print_function
 import os
 import sys
+from copy import deepcopy
 
 import numpy as np
 
 import rospy
 import rosservice
-
+import tf
 from nav_msgs.msg import OccupancyGrid
 from rosmon_msgs.msg import State
 from rosmon_msgs.srv import StartStop
+from tb_simulation.msg import TargetReached
 from tb_simulation.srv import PlanPath
 from std_msgs.msg import Header
-from geometry_msgs.msg import Pose, Point, Quaternion
+from geometry_msgs.msg import PoseArray, Pose, PoseStamped, Point, Quaternion
 
 
 class Manager:
     """
     Manage the simulation.
 
-    - Performs initialization motion once all nodes are ready (TODO)
+    - Performs initialization motion once all nodes are ready
     - Starts the path planning towards (towards 0.8m on the other side
       of the door)
-    - Shuts down nodes when done/a node failed/after a 10 min timeout
+    - Shuts down nodes when done/a node failed/after a 10 min timeout (TODO)
     """
 
     # pylint: disable=too-many-instance-attributes
@@ -34,7 +36,7 @@ class Manager:
     def __init__(self):
         rospy.init_node("sim_manager", anonymous=False)
         rospy.Subscriber("/projected_map", OccupancyGrid, self.map_cb)
-        rospy.Subscriber("/indoor/pose", Pose, self.pose_cb)
+        rospy.Subscriber("/indoor/pose", PoseStamped, self.pose_cb)
 
         args = rospy.myargv()
         if len(args) != 4:
@@ -56,9 +58,20 @@ class Manager:
         self._wait_for_rosmon()
         self._wait_for_init()
 
-        # TODO: Perform initialization motion
+        self._target_reached = -1
+        self._initialization_motion()
         # TODO: Measure time from here. More then 10 minutes -> abort
         self._plan_path()
+
+    @staticmethod
+    def _wait_for(pred):
+        """Emulate rospy.spin() until pred() returns True."""
+        rate = rospy.Rate(0.5)
+        while not pred() and not rospy.core.is_shutdown():
+            rate.sleep()
+
+        if rospy.core.is_shutdown():
+            raise Exception("Unexpected shutdown!")
 
     def _wait_for_rosmon(self):
         """ Wait for the rosmon state topic and subscribe."""
@@ -82,14 +95,39 @@ class Manager:
         rospy.wait_for_service("/plan_path")
         rospy.loginfo("/plan_path is up!")
 
-        while (not (self._got_map and self._got_pose) and
-               not rospy.core.is_shutdown()):
-            rospy.rostime.wallsleep(0.5)
+        self._wait_for(lambda: self._got_map and self._got_pose)
         rospy.loginfo("Got a map + pose, ready to go!")
+
+    def _initialization_motion(self):
+        """Perform an initialization motion (spin)."""
+        pub = rospy.Publisher("/path", PoseArray, queue_size=10)
+        self._wait_for(lambda: pub.get_num_connections() > 0)
+        poses = []
+
+        pose = self.pose
+        for _ in range(3):
+            quat = np.array((pose.orientation.x, pose.orientation.y,
+                             pose.orientation.z, pose.orientation.w))
+            euler = list(tf.transformations.euler_from_quaternion(quat))
+            euler[2] += np.pi / 2
+            quat = tf.transformations.quaternion_from_euler(*euler)
+            pose.orientation = Quaternion(quat[0], quat[1], quat[2], quat[3])
+            poses.append(deepcopy(pose))
+
+        msg = PoseArray(Header(0, rospy.Time.now(), "/map"), poses)
+        rospy.loginfo("Performing initialization motion...")
+        target_reached_sub = rospy.Subscriber("/target_reached", TargetReached,
+                                              self.target_reached_cb)
+        pub.publish(msg)
+
+        self._wait_for(lambda: self._target_reached == len(poses) - 1)
+        rospy.loginfo("Initialization motion complete")
+        target_reached_sub.unregister()
 
     def _plan_path(self):
         """Call the /plan_path service."""
         plan_path = rospy.ServiceProxy("/plan_path", PlanPath)
+        rospy.loginfo("Starting actual pathfinding")
         plan_path(
             Header(0, rospy.Time.now(), "/map"),
             Pose(
@@ -131,6 +169,10 @@ class Manager:
                 return srv
         return ""
 
+    def target_reached_cb(self, msg):
+        """Update the target_reached variable."""
+        self._target_reached = msg.target
+
     def rosmon_state_cb(self, msg):
         """Filter out running nodes and check if any failed."""
         # TODO: Check if any nodes failed -> abort
@@ -148,7 +190,8 @@ class Manager:
             (self.door[1] - msg.info.origin.position.y) / msg.info.resolution
         )
 
-        if x_i < 0 or x_i >= msg.info.width or y_i < 0 or y_i >= msg.info.height:
+        if x_i < 0 or x_i >= msg.info.width or \
+           y_i < 0 or y_i >= msg.info.height:
             rospy.logwarn_throttle(
                 5,
                 "Target outside of map (should be at %f|%f, but map is only "
@@ -162,7 +205,7 @@ class Manager:
     def pose_cb(self, msg):
         """Update current pose and check if UAV is still moving (TODO)."""
         self._got_pose = True
-        self.pose = msg
+        self.pose = msg.pose
 
     def shutdown(self):
         """Shutdown all other nodes, then this node itself."""
