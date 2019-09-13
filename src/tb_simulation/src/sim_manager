@@ -135,6 +135,8 @@ class Manager:
         self._wait_for(lambda: self._target_reached == len(poses) - 1)
         rospy.loginfo("Initialization motion complete")
         target_reached_sub.unregister()
+        # Wait for map to be updated
+        rospy.sleep(3)
 
     def _plan_path(self):
         """Call the /plan_path service."""
