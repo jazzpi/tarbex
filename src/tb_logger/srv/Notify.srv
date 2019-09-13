@@ -1,0 +1,7 @@
+uint32 STARTED = 0
+uint32 FINISHED = 1
+uint32 ABORTED = 2
+
+uint32 state
+string msg
+---
