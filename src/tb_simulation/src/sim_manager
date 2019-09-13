@@ -24,6 +24,9 @@ from tb_logger.srv import Notify
 
 
 TIMEOUT_SEC = 10 * 60
+STARTED = Notify._request_class.STARTED
+FINISHED = Notify._request_class.FINISHED
+ABORTED = Notify._request_class.ABORTED
 
 
 class Manager:
@@ -67,7 +70,7 @@ class Manager:
         self._target_reached = -1
         self._initialization_motion()
         rospy.Timer(rospy.Duration(TIMEOUT_SEC), self.timeout_cb, True)
-        self.notify(self.notify.request_class.STARTED, "")
+        self.notify(STARTED)
         self._plan_path()
 
     @staticmethod
@@ -102,7 +105,7 @@ class Manager:
         rospy.wait_for_service("/plan_path")
         rospy.loginfo("/plan_path is up!")
         rospy.wait_for_service("/tbLogger/notify")
-        self.notify = rospy.ServiceProxy("/tbLogger/notify", Notify)
+        self._notify = rospy.ServiceProxy("/tbLogger/notify", Notify)
 
         self._wait_for(lambda: self._got_map and self._got_pose)
         rospy.loginfo("Got a map + pose, ready to go!")
@@ -233,7 +236,7 @@ class Manager:
     def shutdown(self, notify=True):
         """Shutdown all other nodes, then this node itself."""
         if notify:
-            self.notify(self.notify.request_class.FINISHED, "Done")
+            self.notify(FINISHED, "Done")
 
         self._running = False
         srv = self._find_rosmon_srv(rosservice.get_service_list(),
@@ -264,8 +267,15 @@ class Manager:
     def abort(self, reason):
         """Abort the simulation."""
         rospy.logerr("Aborting! %s", reason)
-        self.notify(self.notify.request_class.ABORTED, reason)
+        self.notify(ABORTED, reason)
         self.shutdown(False)
+
+    def notify(self, state, reason=""):
+        try:
+            self._notify(state, reason)
+        except rospy.ServiceException:
+            return False
+        return True
 
 
 def main():
