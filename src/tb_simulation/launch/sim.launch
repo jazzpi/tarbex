@@ -33,4 +33,9 @@
       <param name="sensor_model/max_range" type="double" value="10.0" />
     </node>
   </group>
+  <group>
+    <remap from="/tbLogger/pose" to="/indoor/pose" />
+    <remap from="/tbLogger/planning_time" to="/planning_time" />
+    <node pkg="tb_logger" type="tb_logger" name="tbLogger" />
+  </group>
 </launch>

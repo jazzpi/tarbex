@@ -13,13 +13,14 @@ import numpy as np
 import rospy
 import rosservice
 import tf
+from std_msgs.msg import Header
+from geometry_msgs.msg import PoseArray, Pose, PoseStamped, Point, Quaternion
 from nav_msgs.msg import OccupancyGrid
 from rosmon_msgs.msg import State
 from rosmon_msgs.srv import StartStop
 from tb_simulation.msg import TargetReached
 from tb_simulation.srv import PlanPath
-from std_msgs.msg import Header
-from geometry_msgs.msg import PoseArray, Pose, PoseStamped, Point, Quaternion
+from tb_logger.srv import Notify
 
 
 TIMEOUT_SEC = 10 * 60
@@ -32,7 +33,7 @@ class Manager:
     - Performs initialization motion once all nodes are ready
     - Starts the path planning towards (towards 0.8m on the other side
       of the door)
-    - Shuts down nodes when done/a node failed/after a 10 min timeout (TODO)
+    - Shuts down nodes when done/a node failed/after a 10 min timeout
     """
 
     # pylint: disable=too-many-instance-attributes
@@ -66,6 +67,7 @@ class Manager:
         self._target_reached = -1
         self._initialization_motion()
         rospy.Timer(rospy.Duration(TIMEOUT_SEC), self.timeout_cb, True)
+        self.notify(self.notify.request_class.STARTED, "")
         self._plan_path()
 
     @staticmethod
@@ -99,6 +101,8 @@ class Manager:
         """
         rospy.wait_for_service("/plan_path")
         rospy.loginfo("/plan_path is up!")
+        rospy.wait_for_service("/tbLogger/notify")
+        self.notify = rospy.ServiceProxy("/tbLogger/notify", Notify)
 
         self._wait_for(lambda: self._got_map and self._got_pose)
         rospy.loginfo("Got a map + pose, ready to go!")
@@ -226,9 +230,11 @@ class Manager:
         """Abort the simulation because it took too long."""
         self.abort("Timeout")
 
-    def shutdown(self):
+    def shutdown(self, notify=True):
         """Shutdown all other nodes, then this node itself."""
-        # TODO: Send finish signal to logger
+        if notify:
+            self.notify(self.notify.request_class.FINISHED, "Done")
+
         self._running = False
         srv = self._find_rosmon_srv(rosservice.get_service_list(),
                                     "/start_stop")
@@ -258,8 +264,8 @@ class Manager:
     def abort(self, reason):
         """Abort the simulation."""
         rospy.logerr("Aborting! %s", reason)
-        # TODO: Send abort signal to logger
-        self.shutdown()
+        self.notify(self.notify.request_class.ABORTED, reason)
+        self.shutdown(False)
 
 
 def main():
