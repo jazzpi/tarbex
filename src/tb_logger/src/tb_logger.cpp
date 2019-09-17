@@ -43,6 +43,21 @@ void Logger::pose_cb(const geometry_msgs::PoseStamped::ConstPtr &msg) {
 
 void Logger::map_cb(const nav_msgs::OccupancyGrid::ConstPtr &msg) {
     map = *msg;
+
+    // Rebuild BBX indices
+    indoor_area = 0;
+    for (int i = 0; i < 4; i++) {
+        indoor_bbxs[i][0] = (INDOOR_BBXS_D[i][0] - map.info.origin.position.x) /
+                            map.info.resolution;
+        indoor_bbxs[i][1] = (INDOOR_BBXS_D[i][1] - map.info.origin.position.y) /
+                            map.info.resolution;
+        indoor_bbxs[i][2] = (INDOOR_BBXS_D[i][2] - map.info.origin.position.x) /
+                            map.info.resolution;
+        indoor_bbxs[i][3] = (INDOOR_BBXS_D[i][3] - map.info.origin.position.y) /
+                            map.info.resolution;
+        indoor_area += (indoor_bbxs[i][2] - indoor_bbxs[i][0]) *
+                       (indoor_bbxs[i][3] - indoor_bbxs[i][1]);
+    }
 }
 
 void Logger::planning_cb(const std_msgs::Duration::ConstPtr &msg) {
@@ -116,10 +131,12 @@ bool Logger::aborted(const std::string& msg) {
 }
 
 void Logger::write_1_s_data() {
+    auto er = map_exploration_ratio();
     bindata_1 data = {
         {pose.position.x, pose.position.y, pose.position.z},
         pose.orientation.x, pose.orientation.y, pose.orientation.z,
-        pose.orientation.w
+        pose.orientation.w,
+        er.first, er.second
     };
     bin_1_s.write((char*) &data, sizeof(data));
     bin_1_s.sync();
@@ -139,6 +156,29 @@ void Logger::write_30_s_data() {
     bin_30_s.write((char*) &header, sizeof(header));
     bin_30_s.write((char*) map.data.data(), map.info.width * map.info.height);
     bin_30_s.sync();
+}
+
+std::pair<double, double> Logger::map_exploration_ratio() {
+    uint64_t explored = 0;
+    uint64_t explored_indoor = 0;
+
+    for (uint32_t y = 0; y < map.info.height; y++) {
+        for (uint32_t x = 0; x < map.info.width; x++) {
+            if (map.data[y * map.info.width + x] != -1) {
+                explored++;
+                for (int i = 0; i < 4; i++) {
+                    if (x > indoor_bbxs[i][0] && x < indoor_bbxs[i][2] &&
+                        y > indoor_bbxs[i][1] && y < indoor_bbxs[i][3]) {
+                        explored_indoor++;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    return std::make_pair(explored / (double) (map.info.width * map.info.height),
+                          explored_indoor / (double) indoor_area);
 }
 
 } // namespace tb_logger

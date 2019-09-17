@@ -17,6 +17,12 @@ constexpr const char* POSE_TOPIC = "pose";
 constexpr const char* MAP_TOPIC = "/projected_map";
 constexpr const char* PLANNING_TOPIC = "planning_time";
 constexpr const char* NOTIFY_SRV = "notify";
+constexpr const double INDOOR_BBXS_D[4][4] = {
+    {-10, 0, -6.4, 14},
+    {-6, 0, -2.4, 4},
+    {-2, 0, 2, 8},
+    {2.4, 0, 10, 4}
+};
 
 #pragma pack(1)
 struct point {
@@ -31,6 +37,8 @@ struct bindata_1 {
     double o_y;
     double o_z;
     double o_w;
+    double exploration_ratio;
+    double exploration_ratio_indoor;
 };
 
 struct bindata_30_header {
@@ -62,6 +70,9 @@ protected:
     void write_1_s_data();
     void write_30_s_data();
 
+    std::pair<double, double> map_exploration_ratio();
+    bool is_indoor(uint32_t xi, uint32_t yi);
+
     ros::NodeHandle nh;
     ros::NodeHandle nh_private;
 
@@ -77,6 +88,8 @@ protected:
     ros::Duration planning_time_acc;
 
     bool ready;
+    uint32_t indoor_bbxs[4][4];
+    uint64_t indoor_area;
     std::string uuid;
     ros::Time start;
 
