@@ -24,6 +24,7 @@ Logger::Logger(ros::NodeHandle nh, ros::NodeHandle nh_private)
     std::string csv_path = data_dir / "list.csv";
     bin_1_s = std::fstream(bin_prefix + "_1.bin", std::ios::out | std::ios::binary | std::ios::trunc);
     bin_30_s = std::fstream(bin_prefix + "_30.bin", std::ios::out | std::ios::binary | std::ios::trunc);
+    final_map = std::fstream(bin_prefix + "_map.bin", std::ios::out | std::ios::binary | std::ios::trunc);
     csv = std::fstream(csv_path, std::ios::out | std::ios::app);
 }
 
@@ -108,7 +109,7 @@ bool Logger::started(const std::string& msg) {
 
 bool Logger::finished(const std::string& msg) {
     if (ready) {
-        // TODO: Write out last data points & CSV entry
+        write_end_data(false, msg);
         ROS_INFO("Finished: %s", msg.c_str());
         ready = false;
     } else {
@@ -120,7 +121,7 @@ bool Logger::finished(const std::string& msg) {
 
 bool Logger::aborted(const std::string& msg) {
     if (ready) {
-        // TODO: Write out last data points & CSV entry
+        write_end_data(true, msg);
         ROS_INFO("Aborted: %s", msg.c_str());
         ready = false;
     } else {
@@ -156,6 +157,17 @@ void Logger::write_30_s_data() {
     bin_30_s.write((char*) &header, sizeof(header));
     bin_30_s.write((char*) map.data.data(), map.info.width * map.info.height);
     bin_30_s.sync();
+}
+
+void Logger::write_end_data(bool aborted, const std::string& reason) {
+    final_map.write((char*) &map.header, sizeof(map.header));
+    final_map.write((char*) &map.info, sizeof(map.info));
+    final_map.write((char*) &map.data, map.info.width * map.info.height);
+    final_map.sync();
+
+    csv << uuid << ";" << (ros::Time::now() - start).toSec() << ";" << aborted
+        << ";" << reason << ";" << planning_time_acc.toSec() << "\n";
+    csv.sync();
 }
 
 std::pair<double, double> Logger::map_exploration_ratio() {

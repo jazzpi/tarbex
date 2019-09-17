@@ -69,6 +69,7 @@ protected:
 
     void write_1_s_data();
     void write_30_s_data();
+    void write_end_data(bool aborted, const std::string& reason);
 
     std::pair<double, double> map_exploration_ratio();
     bool is_indoor(uint32_t xi, uint32_t yi);
@@ -95,6 +96,7 @@ protected:
 
     std::fstream bin_1_s;
     std::fstream bin_30_s;
+    std::fstream final_map;
     std::fstream csv;
 };
 
