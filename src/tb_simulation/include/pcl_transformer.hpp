@@ -5,6 +5,7 @@
 #include <tf/transform_listener.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <std_srvs/Empty.h>
 
 namespace tb_simulation {
 
@@ -22,8 +23,12 @@ protected:
     tf::TransformListener tf_listener;
     ros::Subscriber pcl_sub;
     ros::Publisher pcl_pub;
+    ros::ServiceServer pause_srv;
+
+    bool paused;
 
     void pcl_in_callback(const sensor_msgs::PointCloud2::ConstPtr& msg);
+    bool pause_callback(std_srvs::Empty::Request&, std_srvs::Empty::Response&);
 };
 
 } // namespace tb_simulation

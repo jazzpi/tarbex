@@ -13,9 +13,15 @@ import numpy as np
 import rospy
 import rosservice
 import tf
+from tf2_ros import TransformBroadcaster
 from std_msgs.msg import Header
-from geometry_msgs.msg import PoseArray, Pose, PoseStamped, Point, Quaternion
+from std_srvs.srv import Empty
+from geometry_msgs.msg import (
+    PoseArray, Pose, PoseStamped, Point, Quaternion, TransformStamped
+)
 from nav_msgs.msg import OccupancyGrid
+from sensor_msgs import point_cloud2
+from sensor_msgs.msg import PointCloud2
 from rosmon_msgs.msg import State
 from rosmon_msgs.srv import StartStop
 from tb_simulation.msg import TargetReached
@@ -67,6 +73,7 @@ class Manager:
         self._wait_for_rosmon()
         self._wait_for_init()
 
+        self._publish_corners()
         self._target_reached = -1
         self._initialization_motion()
         rospy.Timer(rospy.Duration(TIMEOUT_SEC), self.timeout_cb, True)
@@ -109,6 +116,49 @@ class Manager:
 
         self._wait_for(lambda: self._got_map and self._got_pose)
         rospy.loginfo("Got a map + pose, ready to go!")
+
+    def _publish_corners(self):
+        """Publish point clouds in all corners so the map is resized."""
+        # When octomap_server also gets the point cloud from the depth camera,
+        # it has problems integrating our point clouds.
+        rospy.wait_for_service("/pcl_transformer/pause")
+        pause_pcl = rospy.ServiceProxy("/pcl_transformer/pause", Empty)
+        pause_pcl()
+
+        pc_pub = rospy.Publisher("/depth_cloud_tf", PointCloud2, queue_size=10)
+        tf_br = TransformBroadcaster()
+        rospy.sleep(1)
+
+        trans = TransformStamped()
+        trans.child_frame_id = "/corner_frame"
+        trans.header.frame_id = "/map"
+        trans.transform.translation.z = 0
+        trans.transform.rotation.x = 1
+
+        pc2 = point_cloud2.create_cloud_xyz32(Header(frame_id="/corner_frame"),
+                                              [(0, 0, 0)])
+
+        for x, y in ((-20, -10), (20, 22)):
+            rospy.loginfo("publishing corner: %f, %f", x, y)
+            trans.transform.translation.x = x
+            trans.transform.translation.y = y
+
+            # For some reason, we need to publish the transform, then the PC,
+            # then the transform again
+            trans.header.stamp = rospy.Time.now()
+            tf_br.sendTransform(trans)
+            rospy.sleep(0.5)
+
+            pc2.header.stamp = rospy.Time.now()
+            pc_pub.publish(pc2)
+            rospy.sleep(0.5)
+
+            trans.header.stamp = rospy.Time.now()
+            tf_br.sendTransform(trans)
+            rospy.sleep(0.5)
+
+        rospy.sleep(0.5)
+        pause_pcl()
 
     def _initialization_motion(self):
         """Perform an initialization motion (spin)."""
