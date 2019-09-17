@@ -43,6 +43,8 @@ bool NBVPInterface::replan() {
 }
 
 bool NBVPInterface::replan(std::vector<geometry_msgs::Pose>& path) {
+    planning_start();
+
     tb_simulation::PlanPath call;
     call.request.header.seq = plan_seq++;
     call.request.header.stamp = ros::Time::now();
@@ -50,12 +52,15 @@ bool NBVPInterface::replan(std::vector<geometry_msgs::Pose>& path) {
     call.request.target = target;
 
     if (!get_exploration_path.call(call)) {
+        // No planning -> No need to publish planning time
         ROS_WARN_THROTTLE(1, "Couldn't reach the planner service at %s", NBVP_SRV);
         return false;
     } else if (call.response.path.size() == 0) {
+        planning_done();
         ROS_WARN_THROTTLE(1, "Planner service returned a path of size 0!");
         return false;
     } else {
+        planning_done();
         path = call.response.path;
         publish_path(path);
     }

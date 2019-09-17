@@ -2,6 +2,7 @@
 
 #include <visualization_msgs/MarkerArray.h>
 #include <geometry_msgs/PoseArray.h>
+#include <std_msgs/Duration.h>
 
 namespace tb_interfaces {
 
@@ -21,6 +22,7 @@ BaseInterface::BaseInterface(ros::NodeHandle nh, ros::NodeHandle nh_private)
     path_pub = nh_private.advertise<geometry_msgs::PoseArray>(PATH_TOPIC, 10);
     vis_pub = nh_private.advertise<visualization_msgs::Marker>(VIS_TOPIC, 10);
     vis_arr_pub = nh_private.advertise<visualization_msgs::MarkerArray>(VIS_TOPIC + std::string("_array"), 10);
+    planning_time_pub = nh.advertise<std_msgs::Duration>(PLANNING_TOPIC, 10);
     replan_timer = nh_private.createTimer(
         ros::Duration(REPLAN_TIMER_INTERVAL), &BaseInterface::replan_timer_cb,
         this);
@@ -126,6 +128,17 @@ tf::Vector3 BaseInterface::normalized_dir(const geometry_msgs::Pose& p1,
     tf::pointMsgToTF(p2.position, p2_);
     dir -= p2_;
     return dir.normalize();
+}
+
+void BaseInterface::planning_start() {
+    planning_started = ros::Time::now();
+}
+
+void BaseInterface::planning_done() {
+    std_msgs::Duration msg;
+    msg.data = ros::Time::now() - planning_started;
+
+    planning_time_pub.publish(msg);
 }
 
 visualization_msgs::Marker BaseInterface::pose_marker(const geometry_msgs::Pose& pose, ros::Time stamp, int color) {

@@ -168,6 +168,7 @@ std::vector<sbpl_xy_theta_pt_t> ADStarInterface::replan() {
     std::vector<sbpl_xy_theta_pt_t> xytheta;
     std::vector<int> solution_states;
     ROS_DEBUG("Start planning...");
+    planning_start();
     int ret;
     try {
         ret = planner->replan(3.0, &solution_states);
@@ -185,6 +186,7 @@ std::vector<sbpl_xy_theta_pt_t> ADStarInterface::replan() {
     env.ConvertStateIDPathintoXYThetaPath(&solution_states, &xytheta);
 
     compress_path(xytheta);
+    planning_done();
 
     return xytheta;
 }

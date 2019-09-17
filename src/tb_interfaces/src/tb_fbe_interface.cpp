@@ -55,6 +55,8 @@ bool FBEInterface::replan() {
 }
 
 bool FBEInterface::replan(std::vector<geometry_msgs::Pose>& path) {
+    planning_start();
+
     nav_msgs::GetPlan call;
     call.request.goal.header.frame_id = "/map";
     call.request.goal.pose = target;
@@ -98,6 +100,7 @@ bool FBEInterface::replan(std::vector<geometry_msgs::Pose>& path) {
         );
     }
 
+    planning_done();
     publish_path(path);
     path_length = path.size();
 

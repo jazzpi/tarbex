@@ -15,6 +15,7 @@ constexpr const char* TARGET_REACHED = "target_reached";
 constexpr const char* POSE_TOPIC = "pose";
 constexpr const char* PATH_TOPIC = "path";
 constexpr const char* VIS_TOPIC = "vis";
+constexpr const char* PLANNING_TOPIC = "/planning_time";
 constexpr const double REPLAN_TIMER_INTERVAL = 2.0;
 constexpr const int REPLAN_TRIES_MAX = 10;
 
@@ -37,6 +38,8 @@ protected:
     void delete_poses();
     tf::Vector3 normalized_dir(const geometry_msgs::Pose& p1,
                                const geometry_msgs::Pose& p2);
+    void planning_start();
+    void planning_done();
 
     ros::NodeHandle nh;
     ros::NodeHandle nh_private;
@@ -48,7 +51,9 @@ protected:
     ros::Publisher path_pub;
     ros::Publisher vis_pub;
     ros::Publisher vis_arr_pub;
+    ros::Publisher planning_time_pub;
 
+    ros::Time planning_started;
     geometry_msgs::Pose pose;
     uint32_t vis_seq;
     uint32_t path_vis_id;
