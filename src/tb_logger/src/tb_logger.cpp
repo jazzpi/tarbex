@@ -22,11 +22,9 @@ Logger::Logger(ros::NodeHandle nh, ros::NodeHandle nh_private)
     fs::path data_dir = get_data_dir();
     std::string bin_prefix = data_dir / uuid;
     std::string csv_path = data_dir / "list.csv";
-    bin_1_s = std::fstream(bin_prefix + "1_s.bin", std::ios::out | std::ios::binary | std::ios::trunc);
-    bin_30_s = std::fstream(bin_prefix + "30_s.bin", std::ios::out | std::ios::binary | std::ios::trunc);
+    bin_1_s = std::fstream(bin_prefix + "_1.bin", std::ios::out | std::ios::binary | std::ios::trunc);
+    bin_30_s = std::fstream(bin_prefix + "_30.bin", std::ios::out | std::ios::binary | std::ios::trunc);
     csv = std::fstream(csv_path, std::ios::out | std::ios::app);
-
-    // TODO: Add timers for writing out data
 }
 
 fs::path Logger::get_data_dir(bool mkdir) {
@@ -65,6 +63,18 @@ bool Logger::notify_cb(Notify::Request& req, Notify::Response&) {
     }
 }
 
+void Logger::timer_1_s_cb(const ros::TimerEvent&) {
+    if (ready) {
+        write_1_s_data();
+    }
+}
+
+void Logger::timer_30_s_cb(const ros::TimerEvent&) {
+    if (ready) {
+        write_30_s_data();
+    }
+}
+
 bool Logger::started(const std::string& msg) {
     if (ready) {
         ROS_WARN("Got STARTED message, but already started?! (%s)", msg.c_str());
@@ -72,6 +82,10 @@ bool Logger::started(const std::string& msg) {
         ROS_INFO("Starting!");
         start = ros::Time::now();
         ready = true;
+        data_1_s = nh_private.createTimer(ros::Duration(1),
+                                          &Logger::timer_1_s_cb, this);
+        data_30_s = nh_private.createTimer(ros::Duration(30),
+                                           &Logger::timer_30_s_cb, this);
     }
 
     return true;
@@ -99,6 +113,32 @@ bool Logger::aborted(const std::string& msg) {
     }
 
     return true;
+}
+
+void Logger::write_1_s_data() {
+    bindata_1 data = {
+        {pose.position.x, pose.position.y, pose.position.z},
+        pose.orientation.x, pose.orientation.y, pose.orientation.z,
+        pose.orientation.w
+    };
+    bin_1_s.write((char*) &data, sizeof(data));
+    bin_1_s.sync();
+}
+
+void Logger::write_30_s_data() {
+    double planning_time = planning_time_acc.sec +  \
+                           ((double) planning_time_acc.nsec) / 1E9;
+    planning_time_acc.sec = planning_time_acc.nsec = 0;
+
+    bindata_30_header header = {
+        planning_time,
+        {map.info.origin.position.x, map.info.origin.position.y,
+         map.info.origin.position.z},
+        map.info.width, map.info.height
+    };
+    bin_30_s.write((char*) &header, sizeof(header));
+    bin_30_s.write((char*) map.data.data(), map.info.width * map.info.height);
+    bin_30_s.sync();
 }
 
 } // namespace tb_logger

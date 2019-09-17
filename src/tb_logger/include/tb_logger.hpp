@@ -18,6 +18,29 @@ constexpr const char* MAP_TOPIC = "/projected_map";
 constexpr const char* PLANNING_TOPIC = "planning_time";
 constexpr const char* NOTIFY_SRV = "notify";
 
+#pragma pack(1)
+struct point {
+    double x;
+    double y;
+    double z;
+};
+
+struct bindata_1 {
+    point p;
+    double o_x;
+    double o_y;
+    double o_z;
+    double o_w;
+};
+
+struct bindata_30_header {
+    double planning_time;
+    point map_origin;
+    uint32_t map_width;
+    uint32_t map_height;
+};
+#pragma options align=reset
+
 class Logger {
 public:
     Logger(ros::NodeHandle nh, ros::NodeHandle nh_private);
@@ -29,10 +52,15 @@ protected:
     void map_cb(const nav_msgs::OccupancyGrid::ConstPtr& msg);
     void planning_cb(const std_msgs::Duration::ConstPtr& msg);
     bool notify_cb(Notify::Request& req, Notify::Response&);
+    void timer_1_s_cb(const ros::TimerEvent&);
+    void timer_30_s_cb(const ros::TimerEvent&);
 
     bool started(const std::string& msg);
     bool finished(const std::string& msg);
     bool aborted(const std::string& msg);
+
+    void write_1_s_data();
+    void write_30_s_data();
 
     ros::NodeHandle nh;
     ros::NodeHandle nh_private;
@@ -41,6 +69,8 @@ protected:
     ros::Subscriber map_sub;
     ros::Subscriber planning_sub;
     ros::ServiceServer notify_srv;
+    ros::Timer data_1_s;
+    ros::Timer data_30_s;
 
     geometry_msgs::Pose pose;
     nav_msgs::OccupancyGrid map;
