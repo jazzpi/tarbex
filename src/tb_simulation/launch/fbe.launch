@@ -5,6 +5,11 @@
     <node pkg="hector_exploration_node" type="exploration_planner_node" name="hector_exploration_node">
       <rosparam command="load" file="$(find tb_simulation)/data/hector_params.yaml" />
     </node>
+    <node pkg="dynamic_reconfigure" type="dynparam" name="startup_reconfigure_hector"
+          args="set_from_parameters hector_exploration_node/hector_exploration_planner">
+      <param name="plan_in_unknown" type="bool" value="false" />
+      <param name="min_obstacle_dist" type="int" value="0" />
+    </node>
   </group>
   <group>
     <remap from="/fbePlanner/pose" to="/indoor/pose" />

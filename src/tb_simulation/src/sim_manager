@@ -239,6 +239,8 @@ class Manager:
 
     def rosmon_state_cb(self, msg):
         """Filter out running nodes and check if any failed."""
+        msg.nodes = list(filter(lambda n: not n.name.startswith("startup_"),
+                                msg.nodes))
         self.running_nodes = map(lambda n: (n.name, n.ns),
                                  filter(lambda n: n.state == 1, msg.nodes))
         if self._running and len(self.running_nodes) < len(msg.nodes):
