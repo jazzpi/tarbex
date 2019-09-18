@@ -1,5 +1,10 @@
 <launch>
-  <include file="$(find tb_simulation)/launch/sim.launch" />
+  <arg name="start_x" default="14" />
+  <arg name="start_y" default="7.5" />
+  <include file="$(find tb_simulation)/launch/sim.launch">
+    <arg name="start_x" value="$(arg start_x)" />
+    <arg name="start_y" value="$(arg start_y)" />
+  </include>
   <group>
     <remap from="/adstarPlanner/pose" to="/indoor/pose" />
     <remap from="/adstarPlanner/path" to="/path" />

@@ -2,6 +2,7 @@
 
 import math
 import os
+import rosparam
 from morse import builder
 
 src_dir = os.path.dirname(__file__)
@@ -55,7 +56,9 @@ pose = builder.Pose()
 pose.add_stream('ros')
 copter.append(pose)
 
-copter.translate(x=14.0, y=7.5, z=1.3)
+start_x = float(rosparam.get_param("/morse/start_x"))
+start_y = float(rosparam.get_param("/morse/start_y"))
+copter.translate(x=start_x, y=start_y, z=1.3)
 copter.rotate(x=0.0, y=0.0, z=math.pi)
 
 env = builder.Environment(env_path, fastmode=False)

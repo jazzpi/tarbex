@@ -1,13 +1,18 @@
 <launch>
   <arg name="pf_orig_epsilon" default="0.1" />
   <arg name="pf_yaw_epsilon" default="0.01" />
+  <arg name="start_x" />
+  <arg name="start_y" />
   <group>
     <remap from="/pose" to="/indoor/pose" />
     <node pkg="tb_simulation" type="map_link_broadcaster" name="map_link_broadcaster" />
   </group>
   <group>
     <node pkg="tb_simulation" type="start_morse" name="morse"
-          args="run $(find tb_simulation)/src/default.py" />
+          args="run $(find tb_simulation)/src/default.py">
+      <param name="start_x" type="double" value="$(arg start_x)" />
+      <param name="start_y" type="double" value="$(arg start_y)" />
+    </node>
   </group>
   <group>
     <remap from="/waypoint" to="/indoor/waypoint_controller" />
