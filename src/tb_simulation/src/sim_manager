@@ -29,7 +29,7 @@ from tb_simulation.srv import PlanPath
 from tb_logger.srv import Notify
 
 
-TIMEOUT_SEC = 10 * 60
+TIMEOUT_SEC = 15 * 60
 STARTED = Notify._request_class.STARTED
 FINISHED = Notify._request_class.FINISHED
 ABORTED = Notify._request_class.ABORTED
@@ -77,7 +77,14 @@ class Manager:
         self._target_reached = -1
         self._initialization_motion()
         rospy.Timer(rospy.Duration(TIMEOUT_SEC), self.timeout_cb, True)
-        self.notify(STARTED)
+        self.notify(
+            STARTED,
+            "Start: %s, Door: %s, Planner: %s" % (
+                repr((self.pose.position.x, self.pose.position.y)),
+                repr(self.door),
+                rosservice.get_service_node("/plan_path")
+            )
+        )
         self._plan_path()
 
     @staticmethod

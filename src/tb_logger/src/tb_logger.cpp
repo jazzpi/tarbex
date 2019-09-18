@@ -97,6 +97,7 @@ bool Logger::started(const std::string& msg) {
     } else {
         ROS_INFO("Starting!");
         start = ros::Time::now();
+        start_msg = msg;
         ready = true;
         data_1_s = nh_private.createTimer(ros::Duration(1),
                                           &Logger::timer_1_s_cb, this);
@@ -165,8 +166,9 @@ void Logger::write_end_data(bool aborted, const std::string& reason) {
     final_map.write((char*) &map.data, map.info.width * map.info.height);
     final_map.sync();
 
-    csv << uuid << ";" << (ros::Time::now() - start).toSec() << ";" << aborted
-        << ";" << reason << ";" << planning_time_acc.toSec() << "\n";
+    csv << uuid << ";" << start_msg << ";" << (ros::Time::now() - start).toSec()
+        << ";" << aborted << ";" << reason << ";" << planning_time_acc.toSec()
+        << "\n";
     csv.sync();
 }
 

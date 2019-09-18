@@ -93,6 +93,7 @@ protected:
     uint64_t indoor_area;
     std::string uuid;
     ros::Time start;
+    std::string start_msg;
 
     std::fstream bin_1_s;
     std::fstream bin_30_s;
