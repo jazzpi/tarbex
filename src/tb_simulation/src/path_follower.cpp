@@ -111,6 +111,7 @@ void PathFollower::publish_pose(const tf::Pose& tp, bool do_throttle) {
 
 void PathFollower::publish_target_reached() {
     TargetReached msg;
+    msg.header.stamp = ros::Time::now();
     msg.path_id = path_id;
     msg.target = current_target - path.begin() - 1;
     tgt_pub.publish(msg);

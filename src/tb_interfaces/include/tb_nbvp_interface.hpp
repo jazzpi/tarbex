@@ -25,6 +25,8 @@ protected:
     std::vector<tf::Pose>::const_iterator current_target;
 
     bool ready;
+    bool planning;
+    ros::Time last_plan;
     uint32_t plan_seq;
     geometry_msgs::Pose target;
 
